@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+
+    <!--- basic page needs
+    ================================================== -->
+    <meta charset="utf-8">
+    <title>Admin Dashboard - St. Paul's Church Thaikkattussery</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- mobile specific metas
+    ================================================== -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS
+    ================================================== -->
+    <!-- Admin dashboard uses its own styles, not loading main.css to avoid conflicts -->
+
+    <!-- script
+    ================================================== -->
+    <script src="js/modernizr.js"></script>
+
+    <!-- favicons
+    ================================================== -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://res.cloudinary.com/dtdt924eu/image/upload/v1762574168/church_f8qqic.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://res.cloudinary.com/dtdt924eu/image/upload/v1762574168/church_f8qqic.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://res.cloudinary.com/dtdt924eu/image/upload/v1762574168/church_f8qqic.png">
+    <link rel="manifest" href="site.webmanifest">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Open Sans", sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        body, body * {
+            color: #ffffff;
+        }
+
+        .admin-header h1,
+        .admin-section h2,
+        .admin-section h3,
+        .admin-form-group label,
+        .admin-item-info h3,
+        .admin-item-info p {
+            color: #ffffff !important;
+        }
+
+        .admin-header {
+            background-color: #000000;
+            color: #ffffff;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-header h1 {
+            font-family: "Montserrat", sans-serif;
+            font-size: 2.4rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .admin-logout-btn {
+            padding: 0.8rem 2rem;
+            font-family: "Montserrat", sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .admin-logout-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: calc(100vh - 70px);
+        }
+
+        .admin-sidebar {
+            width: 250px;
+            background-color: #2a2a2a;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+            padding: 2rem 0;
+        }
+
+        .admin-sidebar-item {
+            padding: 1.5rem 2rem;
+            font-family: "Montserrat", sans-serif;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+        .admin-sidebar-item:hover {
+            background-color: #3a3a3a;
+        }
+
+        .admin-sidebar-item.active {
+            background-color: #000000;
+            color: #ffffff;
+            border-left-color: #ffffff;
+        }
+
+        .admin-content {
+            flex: 1;
+            padding: 3rem;
+            background-color: #1a1a1a;
+        }
+
+        .admin-section {
+            display: none;
+        }
+
+        .admin-section.active {
+            display: block;
+        }
+
+        .admin-section h2 {
+            font-family: "Montserrat", sans-serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 2rem;
+        }
+
+        .admin-form {
+            background-color: #2a2a2a;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .admin-form-group {
+            margin-bottom: 2rem;
+        }
+
+        .admin-form-group label {
+            display: block;
+            font-family: "Montserrat", sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.8rem;
+        }
+
+        .admin-form-group input[type="text"] {
+            width: 100%;
+            padding: 1.2rem;
+            font-family: "Open Sans", sans-serif;
+            font-size: 1.5rem;
+            border: 2px solid #444444;
+            border-radius: 4px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .admin-form-group input[type="text"]::placeholder {
+            color: #888888;
+        }
+
+        .admin-form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #ffffff;
+        }
+
+        .admin-form-group textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 1.2rem;
+            font-family: "Open Sans", sans-serif;
+            font-size: 1.5rem;
+            border: 2px solid #444444;
+            border-radius: 4px;
+            resize: vertical;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .admin-form-group textarea::placeholder {
+            color: #888888;
+        }
+
+        .admin-form-group textarea:focus {
+            outline: none;
+            border-color: #ffffff;
+        }
+
+        .admin-image-upload {
+            border: 2px dashed #444444;
+            border-radius: 4px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            color: #ffffff;
+        }
+
+        .admin-image-upload:hover {
+            border-color: #ffffff;
+        }
+
+        .admin-image-upload input[type="file"] {
+            display: none;
+        }
+
+        .admin-image-preview {
+            margin-top: 1.5rem;
+            max-width: 100%;
+        }
+
+        .admin-image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 4px;
+        }
+
+        .admin-btn {
+            padding: 1.2rem 3rem;
+            font-family: "Montserrat", sans-serif;
+            font-size: 1.6rem;
+            font-weight: 600;
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-right: 1rem;
+        }
+
+        .admin-btn:hover {
+            background-color: #333333;
+        }
+
+        .admin-btn-secondary {
+            background-color: #666666;
+        }
+
+        .admin-btn-secondary:hover {
+            background-color: #555555;
+        }
+
+        .admin-btn-danger {
+            background-color: #dd4043;
+        }
+
+        .admin-btn-danger:hover {
+            background-color: #c03033;
+        }
+
+        .admin-items-list {
+            margin-top: 3rem;
+        }
+
+        .admin-item-card {
+            background-color: #2a2a2a;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-item-info {
+            flex: 1;
+        }
+
+        .admin-item-info h3 {
+            font-family: "Montserrat", sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-item-info p {
+            font-family: "Open Sans", sans-serif;
+            font-size: 1.4rem;
+            color: #cccccc;
+            margin: 0;
+        }
+
+        .admin-item-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .admin-subsection-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 3rem;
+            border-bottom: 2px solid #444444;
+            padding-bottom: 1rem;
+        }
+
+        .admin-subsection-tab {
+            padding: 1rem 2rem;
+            font-family: "Montserrat", sans-serif;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #cccccc;
+            background-color: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .admin-subsection-tab:hover {
+            color: #ffffff;
+        }
+
+        .admin-subsection-tab.active {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+
+        .admin-subsection-content {
+            display: none;
+        }
+
+        .admin-subsection-content.active {
+            display: block;
+        }
+
+        .admin-message {
+            padding: 1.2rem;
+            border-radius: 4px;
+            margin-bottom: 2rem;
+            font-family: "Open Sans", sans-serif;
+            font-size: 1.4rem;
+            display: none;
+        }
+
+        .admin-message.success {
+            background-color: #c8e675;
+            color: #637533;
+            display: block;
+        }
+
+        .admin-message.error {
+            background-color: #ffd1d2;
+            color: #dd4043;
+            display: block;
+        }
+
+        @media screen and (max-width: 800px) {
+            .admin-container {
+                flex-direction: column;
+            }
+
+            .admin-sidebar {
+                width: 100%;
+                display: flex;
+                overflow-x: auto;
+            }
+
+            .admin-sidebar-item {
+                white-space: nowrap;
+                min-width: 150px;
+            }
+
+            .admin-content {
+                padding: 2rem;
+            }
+        }
+    </style>
+
+</head>
+
+<body id="top">
+
+    <div class="admin-header">
+        <h1>Admin Dashboard</h1>
+        <button class="admin-logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="admin-container">
+        <div class="admin-sidebar">
+            <div class="admin-sidebar-item active" data-section="news-activities">News & Activities</div>
+            <div class="admin-sidebar-item" data-section="about">About</div>
+            <div class="admin-sidebar-item" data-section="service-teams">Service Teams</div>
+            <div class="admin-sidebar-item" data-section="events">Events</div>
+            <div class="admin-sidebar-item" data-section="church-images">Images</div>
+        </div>
+
+        <div class="admin-content">
+            <!-- News & Activities Section -->
+            <div class="admin-section active" id="news-activities-section">
+                <h2>News & Activities</h2>
+                <div class="admin-subsection-tabs">
+                    <button class="admin-subsection-tab active" data-subsection="news">News</button>
+                    <button class="admin-subsection-tab" data-subsection="activities">Activities</button>
+                </div>
+                
+                <!-- News Sub-section -->
+                <div class="admin-subsection-content active" id="news-subsection">
+                    <h3>Manage News</h3>
+                    <div id="newsMessage" class="admin-message"></div>
+                    
+                    <div class="admin-form">
+                        <form id="newsForm">
+                            <div class="admin-form-group">
+                                <label for="newsTitle">News Title</label>
+                                <input type="text" id="newsTitle" name="newsTitle" placeholder="Enter news title..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label for="newsText">News Text</label>
+                                <textarea id="newsText" name="newsText" placeholder="Enter news content..."></textarea>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label>News Image</label>
+                                <div class="admin-image-upload" onclick="document.getElementById('newsImage').click()">
+                                    <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                    <input type="file" id="newsImage" name="newsImage" accept="image/*">
+                                </div>
+                                <div class="admin-image-preview" id="newsImagePreview"></div>
+                            </div>
+
+                            <div>
+                                <button type="submit" class="admin-btn">Save News</button>
+                                <button type="button" class="admin-btn admin-btn-secondary" onclick="clearNewsForm()">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="admin-items-list">
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Existing News Items</h3>
+                        <div id="newsItemsList"></div>
+                    </div>
+                </div> <!-- end news-subsection -->
+
+                <!-- Activities Sub-section -->
+                <div class="admin-subsection-content" id="activities-subsection">
+                    <div id="activitiesMessage" class="admin-message"></div>
+                    
+                    <div class="admin-form">
+                        <form id="activitiesForm">
+                            <div class="admin-form-group">
+                                <label for="activityTitle">Activity Title</label>
+                                <input type="text" id="activityTitle" name="activityTitle" placeholder="Enter activity title..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label for="activityText">Activity Text</label>
+                                <textarea id="activityText" name="activityText" placeholder="Enter activity content..."></textarea>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label>Activity Image</label>
+                                <div class="admin-image-upload" onclick="document.getElementById('activityImage').click()">
+                                    <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                    <input type="file" id="activityImage" name="activityImage" accept="image/*">
+                                </div>
+                                <div class="admin-image-preview" id="activityImagePreview"></div>
+                            </div>
+
+                            <div>
+                                <button type="submit" class="admin-btn">Save Activity</button>
+                                <button type="button" class="admin-btn admin-btn-secondary" onclick="clearActivityForm()">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="admin-items-list">
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Existing Activities</h3>
+                        <div id="activitiesItemsList"></div>
+                    </div>
+                </div> <!-- end activities-subsection -->
+            </div> <!-- end news-activities-section -->
+
+            <!-- About Section -->
+            <div class="admin-section" id="about-section">
+                <h2>About</h2>
+                <div class="admin-subsection-tabs">
+                    <button class="admin-subsection-tab active" data-subsection="father-profile">Father Profile</button>
+                    <button class="admin-subsection-tab" data-subsection="service-team">Service Team</button>
+                </div>
+                
+                <!-- Father Profile Sub-section -->
+                <div class="admin-subsection-content active" id="father-profile-subsection">
+                    <div id="fatherProfileMessage" class="admin-message"></div>
+                    
+                    <div class="admin-form">
+                        <form id="fatherProfileForm">
+                            <div class="admin-form-group">
+                                <label for="fatherName">Father's Name</label>
+                                <input type="text" id="fatherName" name="fatherName" placeholder="Enter Father's name..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label>Father's Image</label>
+                                <div class="admin-image-upload" onclick="document.getElementById('fatherImage').click()">
+                                    <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                    <input type="file" id="fatherImage" name="fatherImage" accept="image/*">
+                                </div>
+                                <div class="admin-image-preview" id="fatherImagePreview"></div>
+                            </div>
+
+                            <div>
+                                <button type="submit" class="admin-btn">Save Father Profile</button>
+                                <button type="button" class="admin-btn admin-btn-secondary" onclick="clearFatherProfileForm()">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="admin-items-list" style="margin-top: 3rem;">
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Current Father Profile</h3>
+                        <div id="fatherProfileDisplay" style="background-color: #2a2a2a; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);">
+                            <!-- Current profile will be displayed here -->
+                        </div>
+                        <div id="fatherProfileActions" style="margin-top: 2rem; text-align: center;">
+                            <!-- Edit and Delete buttons will be displayed here -->
+                        </div>
+                    </div>
+                </div> <!-- end father-profile-subsection -->
+
+                <!-- Service Team Sub-section -->
+                <div class="admin-subsection-content" id="service-team-subsection">
+                    <div id="serviceTeamMessage" class="admin-message"></div>
+                    
+                    <div class="admin-form">
+                        <form id="serviceTeamForm">
+                            <div class="admin-form-group">
+                                <label for="memberName">Member Name</label>
+                                <input type="text" id="memberName" name="memberName" placeholder="Enter member name..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label for="memberPosition">Position/Role</label>
+                                <input type="text" id="memberPosition" name="memberPosition" placeholder="Enter position/role..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label>Profile Image</label>
+                                <div class="admin-image-upload" onclick="document.getElementById('memberImage').click()">
+                                    <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                    <input type="file" id="memberImage" name="memberImage" accept="image/*">
+                                </div>
+                                <div class="admin-image-preview" id="memberImagePreview"></div>
+                            </div>
+
+                            <div>
+                                <button type="submit" class="admin-btn">Save Member</button>
+                                <button type="button" class="admin-btn admin-btn-secondary" onclick="clearServiceTeamForm()">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="admin-items-list">
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Existing Service Team Members</h3>
+                        <div id="serviceTeamList"></div>
+                    </div>
+                </div> <!-- end service-team-subsection -->
+            </div> <!-- end about-section -->
+
+            <!-- Service Teams Section -->
+            <div class="admin-section" id="service-teams-section">
+                <h2>Service Teams</h2>
+                <div class="admin-subsection-tabs">
+                    <button class="admin-subsection-tab active" data-subsection="clc-team">CLC Team</button>
+                    <button class="admin-subsection-tab" data-subsection="kcym-team">KCYM Team</button>
+                    <button class="admin-subsection-tab" data-subsection="choir-team">Choir Team</button>
+                    <button class="admin-subsection-tab" data-subsection="mathrusangam-team">Mathrusangam Team</button>
+                </div>
+                
+                <!-- CLC Team Sub-section -->
+                <div class="admin-subsection-content active" id="clc-team-subsection">
+                    <h3>Manage CLC Service Team</h3>
+                    <div id="clcTeamMessage" class="admin-message"></div>
+                    
+                    <div class="admin-form">
+                        <form id="clcTeamForm">
+                            <div class="admin-form-group">
+                                <label for="clcMemberName">Member Name</label>
+                                <input type="text" id="clcMemberName" name="clcMemberName" placeholder="Enter member name..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label for="clcMemberPosition">Position/Role</label>
+                                <input type="text" id="clcMemberPosition" name="clcMemberPosition" placeholder="Enter position/role..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label>Profile Image</label>
+                                <div class="admin-image-upload" onclick="document.getElementById('clcMemberImage').click()">
+                                    <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                    <input type="file" id="clcMemberImage" name="clcMemberImage" accept="image/*">
+                                </div>
+                                <div class="admin-image-preview" id="clcMemberImagePreview"></div>
+                            </div>
+
+                            <div>
+                                <button type="submit" class="admin-btn">Save Member</button>
+                                <button type="button" class="admin-btn admin-btn-secondary" onclick="clearCLCTeamForm()">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="admin-items-list">
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Existing CLC Team Members</h3>
+                        <div id="clcTeamList"></div>
+                    </div>
+                </div> <!-- end clc-team-subsection -->
+
+                <!-- KCYM Team Sub-section -->
+                <div class="admin-subsection-content" id="kcym-team-subsection">
+                    <h3>Manage KCYM Service Team</h3>
+                <div id="kcymTeamMessage" class="admin-message"></div>
+                
+                <div class="admin-form">
+                    <form id="kcymTeamForm">
+                        <div class="admin-form-group">
+                            <label for="kcymMemberName">Member Name</label>
+                            <input type="text" id="kcymMemberName" name="kcymMemberName" placeholder="Enter member name..." required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label for="kcymMemberPosition">Position/Role</label>
+                            <input type="text" id="kcymMemberPosition" name="kcymMemberPosition" placeholder="Enter position/role..." required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Profile Image</label>
+                            <div class="admin-image-upload" onclick="document.getElementById('kcymMemberImage').click()">
+                                <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                <input type="file" id="kcymMemberImage" name="kcymMemberImage" accept="image/*">
+                            </div>
+                            <div class="admin-image-preview" id="kcymMemberImagePreview"></div>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="admin-btn">Save Member</button>
+                            <button type="button" class="admin-btn admin-btn-secondary" onclick="clearKCYMTeamForm()">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-items-list">
+                    <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Existing KCYM Team Members</h3>
+                    <div id="kcymTeamList"></div>
+                </div>
+                </div> <!-- end kcym-team-subsection -->
+
+                <!-- Choir Team Sub-section -->
+                <div class="admin-subsection-content" id="choir-team-subsection">
+                    <h3>Manage Choir Service Team</h3>
+                    <div id="choirTeamMessage" class="admin-message"></div>
+                    
+                    <div class="admin-form">
+                        <form id="choirTeamForm">
+                            <div class="admin-form-group">
+                                <label for="choirMemberName">Member Name</label>
+                                <input type="text" id="choirMemberName" name="choirMemberName" placeholder="Enter member name..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label for="choirMemberPosition">Position/Role</label>
+                                <input type="text" id="choirMemberPosition" name="choirMemberPosition" placeholder="Enter position/role..." required>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label>Profile Image</label>
+                                <div class="admin-image-upload" onclick="document.getElementById('choirMemberImage').click()">
+                                    <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                    <input type="file" id="choirMemberImage" name="choirMemberImage" accept="image/*">
+                                </div>
+                                <div class="admin-image-preview" id="choirMemberImagePreview"></div>
+                            </div>
+
+                            <div>
+                                <button type="submit" class="admin-btn">Save Member</button>
+                                <button type="button" class="admin-btn admin-btn-secondary" onclick="clearChoirTeamForm()">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="admin-items-list">
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Existing Choir Team Members</h3>
+                        <div id="choirTeamList"></div>
+                    </div>
+                </div> <!-- end choir-team-subsection -->
+
+                <!-- Mathrusangam Team Sub-section -->
+                <div class="admin-subsection-content" id="mathrusangam-team-subsection">
+                    <h3>Manage Mathrusangam Service Team</h3>
+                <div id="mathrusangamTeamMessage" class="admin-message"></div>
+                
+                <div class="admin-form">
+                    <form id="mathrusangamTeamForm">
+                        <div class="admin-form-group">
+                            <label for="mathrusangamMemberName">Member Name</label>
+                            <input type="text" id="mathrusangamMemberName" name="mathrusangamMemberName" placeholder="Enter member name..." required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label for="mathrusangamMemberPosition">Position/Role</label>
+                            <input type="text" id="mathrusangamMemberPosition" name="mathrusangamMemberPosition" placeholder="Enter position/role..." required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Profile Image</label>
+                            <div class="admin-image-upload" onclick="document.getElementById('mathrusangamMemberImage').click()">
+                                <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                <input type="file" id="mathrusangamMemberImage" name="mathrusangamMemberImage" accept="image/*">
+                            </div>
+                            <div class="admin-image-preview" id="mathrusangamMemberImagePreview"></div>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="admin-btn">Save Member</button>
+                            <button type="button" class="admin-btn admin-btn-secondary" onclick="clearMathrusangamTeamForm()">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-items-list">
+                    <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Existing Mathrusangam Team Members</h3>
+                    <div id="mathrusangamTeamList"></div>
+                </div>
+                </div> <!-- end mathrusangam-team-subsection -->
+            </div> <!-- end service-teams-section -->
+
+            <!-- Church Images Section -->
+            <div class="admin-section" id="church-images-section">
+                <h2>Images</h2>
+                <div id="churchImagesMessage" class="admin-message"></div>
+                
+                <div class="admin-form">
+                    <form id="churchImagesForm">
+                        <div class="admin-form-group">
+                            <label for="imageTitle">Image Title (Optional)</label>
+                            <input type="text" id="imageTitle" name="imageTitle" placeholder="Enter image title...">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Upload Image</label>
+                            <div class="admin-image-upload" onclick="document.getElementById('churchImage').click()">
+                                <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload image</p>
+                                <input type="file" id="churchImage" name="churchImage" accept="image/*">
+                            </div>
+                            <div class="admin-image-preview" id="churchImagePreview"></div>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="admin-btn">Add Image</button>
+                            <button type="button" class="admin-btn admin-btn-secondary" onclick="clearChurchImageForm()">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-items-list" style="margin-top: 3rem;">
+                    <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Uploaded Images</h3>
+                    <div id="churchImagesList"></div>
+                </div>
+            </div>
+
+            <!-- Events Section -->
+            <div class="admin-section" id="events-section">
+                <h2>Events</h2>
+                <div id="eventsMessage" class="admin-message"></div>
+                
+                <div class="admin-form">
+                    <form id="eventsForm">
+                        <div class="admin-form-group">
+                            <label for="eventName">Event Name/Title</label>
+                            <input type="text" id="eventName" name="eventName" placeholder="Enter event name..." required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label for="eventDate">Event Date</label>
+                            <input type="date" id="eventDate" name="eventDate" required style="width: 100%; padding: 1.2rem; font-size: 1.5rem; border: 2px solid #444444; border-radius: 4px; background-color: #1a1a1a; color: #ffffff;">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label for="eventDescription">Event Description</label>
+                            <textarea id="eventDescription" name="eventDescription" placeholder="Enter event description..." required></textarea>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Event Photos (Multiple)</label>
+                            <div class="admin-image-upload" onclick="document.getElementById('eventPhotos').click()">
+                                <p style="margin: 0; font-size: 1.4rem; color: #cccccc;">Click to upload photos (multiple selection allowed)</p>
+                                <input type="file" id="eventPhotos" name="eventPhotos" accept="image/*" multiple>
+                            </div>
+                            <div class="admin-image-preview" id="eventPhotosPreview" style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem;"></div>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label for="eventVideos">Event Videos (YouTube/Vimeo URLs - one per line)</label>
+                            <textarea id="eventVideos" name="eventVideos" placeholder="Enter video URLs, one per line&#10;Example:&#10;https://www.youtube.com/watch?v=...&#10;https://vimeo.com/..." style="min-height: 100px;"></textarea>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="admin-btn">Save Event</button>
+                            <button type="button" class="admin-btn admin-btn-secondary" onclick="clearEventsForm()">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-items-list">
+                    <h3 style="font-family: 'Montserrat', sans-serif; font-size: 2.2rem; margin-bottom: 2rem; color: #ffffff;">Existing Events</h3>
+                    <div id="eventsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Java Script
+    ================================================== -->
+    <script src="js/jquery-3.2.1.min.js"></script>
+    <script src="js/plugins.js"></script>
+    <script src="js/admin-dashboard.js"></script>
+
+</body>
+</html>
+

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+
+    <!--- basic page needs
+    ================================================== -->
+    <meta charset="utf-8">
+    <title>Admin Login - St. Paul's Church Thaikkattussery</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- mobile specific metas
+    ================================================== -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS
+    ================================================== -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/main.css">
+
+    <!-- script
+    ================================================== -->
+    <script src="js/modernizr.js"></script>
+
+    <!-- favicons
+    ================================================== -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://res.cloudinary.com/dtdt924eu/image/upload/v1762574168/church_f8qqic.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://res.cloudinary.com/dtdt924eu/image/upload/v1762574168/church_f8qqic.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://res.cloudinary.com/dtdt924eu/image/upload/v1762574168/church_f8qqic.png">
+    <link rel="manifest" href="site.webmanifest">
+
+    <style>
+        .admin-login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #000000;
+            padding: 2rem;
+            padding-top: 10rem;
+        }
+
+        .admin-login-box {
+            background-color: #ffffff;
+            padding: 4rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .admin-login-box h2 {
+            font-family: "Montserrat", sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .admin-login-box .subtitle {
+            font-family: "Open Sans", sans-serif;
+            font-size: 1.5rem;
+            color: #666666;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .admin-form-group {
+            margin-bottom: 2rem;
+        }
+
+        .admin-form-group label {
+            display: block;
+            font-family: "Montserrat", sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 0.8rem;
+        }
+
+        .admin-form-group input {
+            width: 100%;
+            padding: 1.2rem;
+            font-family: "Open Sans", sans-serif;
+            font-size: 1.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            transition: border-color 0.3s;
+        }
+
+        .admin-form-group input:focus {
+            outline: none;
+            border-color: #000000;
+        }
+
+        .admin-login-btn {
+            width: 100%;
+            padding: 1.4rem;
+            font-family: "Montserrat", sans-serif;
+            font-size: 1.6rem;
+            font-weight: 600;
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .admin-login-btn:hover {
+            background-color: #333333;
+        }
+
+        .admin-error-message {
+            color: #dd4043;
+            font-family: "Open Sans", sans-serif;
+            font-size: 1.4rem;
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+        }
+
+        .admin-error-message.show {
+            display: block;
+        }
+
+        @media screen and (max-width: 500px) {
+            .admin-login-box {
+                padding: 2.5rem;
+            }
+
+            .admin-login-box h2 {
+                font-size: 2.4rem;
+            }
+        }
+    </style>
+
+</head>
+
+<body id="top">
+
+    <!-- header
+    ================================================== -->
+    <header class="s-header">
+
+        <div class="header-logo">
+            <a class="site-logo" href="index.html">
+                <img src="images/logo.svg" alt="Homepage">
+            </a>
+        </div>
+
+        <nav class="header-nav-wrap">
+            <ul class="header-nav">
+                <li><a href="index.html" title="Home">Home</a></li>
+                <li><a href="about.html" title="About">About</a></li>
+                <li><a href="events.html" title="Services">Events</a></li>
+                <li class="dropdown">
+                    <a href="#0" title="More">More</a>
+                    <ul class="dropdown-menu">
+                        <li><a href="clc.html" title="CLC">CLC</a></li>
+                        <li><a href="kcym.html" title="KCYM">KCYM</a></li>
+                        <li><a href="choir.html" title="CHOIR">CHOIR</a></li>
+                        <li><a href="mathrusangam.html" title="Mathrusangam">Mathrusangam</a></li>
+                    </ul>
+                </li>
+                <li><a href="contact.html" title="Contact us">Contact</a></li>	
+            </ul>
+        </nav>
+
+        <a class="header-menu-toggle" href="#0"><span>Menu</span></a>
+
+    </header> <!-- end s-header -->
+
+    <div class="admin-login-container">
+        <div class="admin-login-box">
+            <h2>Admin Login</h2>
+            <p class="subtitle">St. Paul's Church Thaikkattussery</p>
+            
+            <form id="adminLoginForm">
+                <div class="admin-form-group">
+                    <label for="adminId">Admin ID</label>
+                    <input type="text" id="adminId" name="adminId" required autocomplete="off">
+                </div>
+
+                <div class="admin-form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" name="adminPassword" required>
+                </div>
+
+                <button type="submit" class="admin-login-btn">Login</button>
+                
+                <div id="errorMessage" class="admin-error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Java Script
+    ================================================== -->
+    <script src="js/jquery-3.2.1.min.js"></script>
+    <script src="js/plugins.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#adminLoginForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                const adminId = $('#adminId').val();
+                const password = $('#adminPassword').val();
+                
+                if (adminId === 'sunny' && password === 'biju') {
+                    // Store login status
+                    sessionStorage.setItem('adminLoggedIn', 'true');
+                    // Redirect to dashboard
+                    window.location.href = 'admin-dashboard.html';
+                } else {
+                    $('#errorMessage').text('Invalid Admin ID or Password').addClass('show');
+                    setTimeout(function() {
+                        $('#errorMessage').removeClass('show');
+                    }, 3000);
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
+
