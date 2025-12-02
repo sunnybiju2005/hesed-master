@@ -1,6 +1,14 @@
 "use strict";
 
-// Load news and activities from localStorage and update the index page
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
+// Load news and activities from Firebase and update the index page
 var newsLoaderInitialized = false;
 $(document).ready(function () {
   if (!newsLoaderInitialized) {
@@ -10,9 +18,12 @@ $(document).ready(function () {
 
 
   if (window.location.pathname.includes('index.html') || window.location.pathname.endsWith('/')) {
-    // Set up real-time listener for news updates
+    // Set up real-time listener for news and activities updates
     if (typeof db !== 'undefined') {
       db.ref('news').on('value', function (snapshot) {
+        loadNewsToIndexPage();
+      });
+      db.ref('activities').on('value', function (snapshot) {
         loadNewsToIndexPage();
       });
     }
@@ -20,8 +31,7 @@ $(document).ready(function () {
 });
 
 function loadNewsToIndexPage() {
-  var newsTrack, newsItems, originalItems, defaultItems, _originalItems, _defaultItems, _originalItems2;
-
+  var newsTrack, newsItems, activityItems, allItems, originalItems;
   return regeneratorRuntime.async(function loadNewsToIndexPage$(_context) {
     while (1) {
       switch (_context.prev = _context.next) {
@@ -46,89 +56,55 @@ function loadNewsToIndexPage() {
 
         case 8:
           newsItems = _context.sent;
+          _context.next = 11;
+          return regeneratorRuntime.awrap(getAllActivityItemsFromFirebase());
 
-          if (newsItems.length > 0) {
-            // Add news items (only once)
-            newsItems.forEach(function (item) {
+        case 11:
+          activityItems = _context.sent;
+          // Combine news and activities, sort by date (newest first)
+          allItems = [].concat(_toConsumableArray(newsItems), _toConsumableArray(activityItems)).sort(function (a, b) {
+            // Sort by date if available, otherwise by createdAt
+            if (a.date && b.date) {
+              return new Date(b.date) - new Date(a.date);
+            }
+
+            return (b.createdAt || 0) - (a.createdAt || 0);
+          });
+
+          if (allItems.length > 0) {
+            // Add all items (news and activities)
+            allItems.forEach(function (item) {
               var imageSrc = item.image || 'images/thumbs/events/event-1000.jpg';
-              var newsItemHtml = "\n                <div class=\"news-item\">\n                    <div class=\"news-image\">\n                        <img src=\"".concat(imageSrc, "\" alt=\"").concat(item.title, "\">\n                    </div>\n                    <div class=\"news-content\">\n                        <h4>").concat(item.title, "</h4>\n                        <p>").concat(item.text, "</p>\n                        <span class=\"news-date\">").concat(item.date, "</span>\n                    </div>\n                </div>\n            ");
+              var newsItemHtml = "\n                    <div class=\"news-item\">\n                        <div class=\"news-image\">\n                            <img src=\"".concat(imageSrc, "\" alt=\"").concat(item.title, "\">\n                        </div>\n                        <div class=\"news-content\">\n                            <h4>").concat(item.title, "</h4>\n                            <p>").concat(item.text, "</p>\n                            <span class=\"news-date\">").concat(item.date, "</span>\n                        </div>\n                    </div>\n                ");
               newsTrack.append(newsItemHtml);
-            }); // Add duplicates ONLY ONCE for seamless loop (only if we have items)
+            }); // Add duplicates ONLY ONCE for seamless loop
 
-            if (newsItems.length > 0) {
-              originalItems = newsTrack.find('.news-item');
-              originalItems.clone().appendTo(newsTrack);
-            } // Restart animation
-
+            originalItems = newsTrack.find('.news-item');
+            originalItems.clone().appendTo(newsTrack); // Restart animation
 
             setTimeout(function () {
               newsTrack.css('animation', 'scroll-news-left 40s linear infinite');
             }, 10);
           } else {
-            // Show default items if no news items exist
-            defaultItems = [{
-              title: 'Christmas Service Celebration',
-              text: 'Our annual Christmas service was held on December 24th with great joy and fellowship. The service featured beautiful music, inspiring messages, and a wonderful time of worship together.',
-              date: 'Dec 24, 2024',
-              image: 'images/thumbs/events/event-1000.jpg'
-            }, {
-              title: 'Youth Conference 2025',
-              text: 'Exciting youth conference scheduled for January 5th, 2025. Registration is now open for all young people. Join us for inspiring sessions, worship, and fellowship.',
-              date: 'Jan 5, 2025',
-              image: 'images/thumbs/events/event-2000.jpg'
-            }];
-            defaultItems.forEach(function (item) {
-              var newsItemHtml = "\n                <div class=\"news-item\">\n                    <div class=\"news-image\">\n                        <img src=\"".concat(item.image, "\" alt=\"").concat(item.title, "\">\n                    </div>\n                    <div class=\"news-content\">\n                        <h4>").concat(item.title, "</h4>\n                        <p>").concat(item.text, "</p>\n                        <span class=\"news-date\">").concat(item.date, "</span>\n                    </div>\n                </div>\n            ");
-              newsTrack.append(newsItemHtml);
-            }); // Add duplicates ONLY ONCE for seamless loop
-
-            _originalItems = newsTrack.find('.news-item');
-
-            _originalItems.clone().appendTo(newsTrack); // Restart animation
-
-
-            setTimeout(function () {
-              newsTrack.css('animation', 'scroll-news-left 40s linear infinite');
-            }, 10);
+            // No items - show empty state
+            // Don't show any default/template items
+            newsTrack.html('<div class="news-item" style="text-align: center; padding: 2rem;"><p style="color: #999; font-size: 1.4rem;">No news or activities yet. Check back soon!</p></div>');
           }
 
           _context.next = 20;
           break;
 
-        case 12:
-          _context.prev = 12;
+        case 16:
+          _context.prev = 16;
           _context.t0 = _context["catch"](5);
-          console.error('Error loading news:', _context.t0); // Show default items on error
+          console.error('Error loading news and activities:', _context.t0); // Don't show default items on error - just show empty state
 
-          _defaultItems = [{
-            title: 'Christmas Service Celebration',
-            text: 'Our annual Christmas service was held on December 24th with great joy and fellowship. The service featured beautiful music, inspiring messages, and a wonderful time of worship together.',
-            date: 'Dec 24, 2024',
-            image: 'images/thumbs/events/event-1000.jpg'
-          }, {
-            title: 'Youth Conference 2025',
-            text: 'Exciting youth conference scheduled for January 5th, 2025. Registration is now open for all young people. Join us for inspiring sessions, worship, and fellowship.',
-            date: 'Jan 5, 2025',
-            image: 'images/thumbs/events/event-2000.jpg'
-          }];
-
-          _defaultItems.forEach(function (item) {
-            var newsItemHtml = "\n                <div class=\"news-item\">\n                    <div class=\"news-image\">\n                        <img src=\"".concat(item.image, "\" alt=\"").concat(item.title, "\">\n                    </div>\n                    <div class=\"news-content\">\n                        <h4>").concat(item.title, "</h4>\n                        <p>").concat(item.text, "</p>\n                        <span class=\"news-date\">").concat(item.date, "</span>\n                    </div>\n                </div>\n            ");
-            newsTrack.append(newsItemHtml);
-          });
-
-          _originalItems2 = newsTrack.find('.news-item');
-
-          _originalItems2.clone().appendTo(newsTrack);
-
-          setTimeout(function () {
-            newsTrack.css('animation', 'scroll-news-left 40s linear infinite');
-          }, 10);
+          newsTrack.html('<div class="news-item" style="text-align: center; padding: 2rem;"><p style="color: #999; font-size: 1.4rem;">Unable to load news. Please refresh the page.</p></div>');
 
         case 20:
         case "end":
           return _context.stop();
       }
     }
-  }, null, null, [[5, 12]]);
+  }, null, null, [[5, 16]]);
 }

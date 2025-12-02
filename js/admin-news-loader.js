@@ -1,4 +1,4 @@
-// Load news and activities from localStorage and update the index page
+// Load news and activities from Firebase and update the index page
 
 let newsLoaderInitialized = false;
 
@@ -10,9 +10,12 @@ $(document).ready(function() {
     
     // Listen for Realtime Database changes to update news dynamically (only if on index page)
     if (window.location.pathname.includes('index.html') || window.location.pathname.endsWith('/')) {
-        // Set up real-time listener for news updates
+        // Set up real-time listener for news and activities updates
         if (typeof db !== 'undefined') {
             db.ref('news').on('value', function(snapshot) {
+                loadNewsToIndexPage();
+            });
+            db.ref('activities').on('value', function(snapshot) {
                 loadNewsToIndexPage();
             });
         }
@@ -33,119 +36,55 @@ async function loadNewsToIndexPage() {
     newsTrack.css('animation', 'none');
     
     try {
+        // Load both news and activities
         const newsItems = await getAllNewsItemsFromFirebase();
+        const activityItems = await getAllActivityItemsFromFirebase();
         
-        if (newsItems.length > 0) {
-        // Add news items (only once)
-        newsItems.forEach(function(item) {
-            const imageSrc = item.image || 'images/thumbs/events/event-1000.jpg';
-            const newsItemHtml = `
-                <div class="news-item">
-                    <div class="news-image">
-                        <img src="${imageSrc}" alt="${item.title}">
-                    </div>
-                    <div class="news-content">
-                        <h4>${item.title}</h4>
-                        <p>${item.text}</p>
-                        <span class="news-date">${item.date}</span>
-                    </div>
-                </div>
-            `;
-            newsTrack.append(newsItemHtml);
+        // Combine news and activities, sort by date (newest first)
+        const allItems = [...newsItems, ...activityItems].sort(function(a, b) {
+            // Sort by date if available, otherwise by createdAt
+            if (a.date && b.date) {
+                return new Date(b.date) - new Date(a.date);
+            }
+            return (b.createdAt || 0) - (a.createdAt || 0);
         });
         
-        // Add duplicates ONLY ONCE for seamless loop (only if we have items)
-        if (newsItems.length > 0) {
+        if (allItems.length > 0) {
+            // Add all items (news and activities)
+            allItems.forEach(function(item) {
+                const imageSrc = item.image || 'images/thumbs/events/event-1000.jpg';
+                const newsItemHtml = `
+                    <div class="news-item">
+                        <div class="news-image">
+                            <img src="${imageSrc}" alt="${item.title}">
+                        </div>
+                        <div class="news-content">
+                            <h4>${item.title}</h4>
+                            <p>${item.text}</p>
+                            <span class="news-date">${item.date}</span>
+                        </div>
+                    </div>
+                `;
+                newsTrack.append(newsItemHtml);
+            });
+            
+            // Add duplicates ONLY ONCE for seamless loop
             const originalItems = newsTrack.find('.news-item');
             originalItems.clone().appendTo(newsTrack);
-        }
-        
+            
             // Restart animation
             setTimeout(function() {
                 newsTrack.css('animation', 'scroll-news-left 40s linear infinite');
             }, 10);
         } else {
-        // Show default items if no news items exist
-        const defaultItems = [
-            {
-                title: 'Christmas Service Celebration',
-                text: 'Our annual Christmas service was held on December 24th with great joy and fellowship. The service featured beautiful music, inspiring messages, and a wonderful time of worship together.',
-                date: 'Dec 24, 2024',
-                image: 'images/thumbs/events/event-1000.jpg'
-            },
-            {
-                title: 'Youth Conference 2025',
-                text: 'Exciting youth conference scheduled for January 5th, 2025. Registration is now open for all young people. Join us for inspiring sessions, worship, and fellowship.',
-                date: 'Jan 5, 2025',
-                image: 'images/thumbs/events/event-2000.jpg'
-            }
-        ];
-        
-        defaultItems.forEach(function(item) {
-            const newsItemHtml = `
-                <div class="news-item">
-                    <div class="news-image">
-                        <img src="${item.image}" alt="${item.title}">
-                    </div>
-                    <div class="news-content">
-                        <h4>${item.title}</h4>
-                        <p>${item.text}</p>
-                        <span class="news-date">${item.date}</span>
-                    </div>
-                </div>
-            `;
-            newsTrack.append(newsItemHtml);
-        });
-        
-        // Add duplicates ONLY ONCE for seamless loop
-        const originalItems = newsTrack.find('.news-item');
-        originalItems.clone().appendTo(newsTrack);
-        
-            // Restart animation
-            setTimeout(function() {
-                newsTrack.css('animation', 'scroll-news-left 40s linear infinite');
-            }, 10);
+            // No items - show empty state
+            // Don't show any default/template items
+            newsTrack.html('<div class="news-item" style="text-align: center; padding: 2rem;"><p style="color: #999; font-size: 1.4rem;">No news or activities yet. Check back soon!</p></div>');
         }
     } catch (error) {
-        console.error('Error loading news:', error);
-        // Show default items on error
-        const defaultItems = [
-            {
-                title: 'Christmas Service Celebration',
-                text: 'Our annual Christmas service was held on December 24th with great joy and fellowship. The service featured beautiful music, inspiring messages, and a wonderful time of worship together.',
-                date: 'Dec 24, 2024',
-                image: 'images/thumbs/events/event-1000.jpg'
-            },
-            {
-                title: 'Youth Conference 2025',
-                text: 'Exciting youth conference scheduled for January 5th, 2025. Registration is now open for all young people. Join us for inspiring sessions, worship, and fellowship.',
-                date: 'Jan 5, 2025',
-                image: 'images/thumbs/events/event-2000.jpg'
-            }
-        ];
-        
-        defaultItems.forEach(function(item) {
-            const newsItemHtml = `
-                <div class="news-item">
-                    <div class="news-image">
-                        <img src="${item.image}" alt="${item.title}">
-                    </div>
-                    <div class="news-content">
-                        <h4>${item.title}</h4>
-                        <p>${item.text}</p>
-                        <span class="news-date">${item.date}</span>
-                    </div>
-                </div>
-            `;
-            newsTrack.append(newsItemHtml);
-        });
-        
-        const originalItems = newsTrack.find('.news-item');
-        originalItems.clone().appendTo(newsTrack);
-        
-        setTimeout(function() {
-            newsTrack.css('animation', 'scroll-news-left 40s linear infinite');
-        }, 10);
+        console.error('Error loading news and activities:', error);
+        // Don't show default items on error - just show empty state
+        newsTrack.html('<div class="news-item" style="text-align: center; padding: 2rem;"><p style="color: #999; font-size: 1.4rem;">Unable to load news. Please refresh the page.</p></div>');
     }
 }
 

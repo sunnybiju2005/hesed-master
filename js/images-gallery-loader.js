@@ -1,4 +1,4 @@
-// Load church images gallery with pagination on images.html
+// Load church images gallery from Firebase Realtime Database with pagination on images.html
 
 let currentPage = 1;
 const imagesPerPage = 10;
@@ -8,35 +8,45 @@ let filteredImages = [];
 $(document).ready(function() {
     loadImagesToGallery();
     
-    // Listen for storage changes
-    $(window).on('storage', function(e) {
-        if (e.originalEvent.key === 'churchImages' || e.originalEvent.key === 'imagesPageUpdated') {
-            loadImagesToGallery();
+    // Listen for Realtime Database changes
+    if (window.location.pathname.includes('images.html')) {
+        if (typeof db !== 'undefined') {
+            db.ref('churchImages').on('value', function(snapshot) {
+                currentPage = 1;
+                loadImagesToGallery();
+            });
         }
-    });
+    }
 });
 
-function loadImagesToGallery() {
-    allImages = JSON.parse(localStorage.getItem('churchImages') || '[]');
-    filteredImages = [...allImages];
-    
-    if (allImages.length === 0) {
+async function loadImagesToGallery() {
+    try {
+        allImages = await getAllChurchImagesFromFirebase();
+        filteredImages = [...allImages];
+        
+        if (allImages.length === 0) {
+            $('#imagesGallery').hide();
+            $('#noImagesMessage').show();
+            $('#paginationContainer').hide();
+            return;
+        }
+        
+        $('#imagesGallery').show();
+        $('#noImagesMessage').hide();
+        
+        // Reset to page 1 if current page is out of bounds
+        const totalPages = Math.ceil(filteredImages.length / imagesPerPage);
+        if (currentPage > totalPages && totalPages > 0) {
+            currentPage = 1;
+        }
+        
+        displayImagesWithPagination();
+    } catch (error) {
+        console.error('Error loading church images:', error);
         $('#imagesGallery').hide();
         $('#noImagesMessage').show();
         $('#paginationContainer').hide();
-        return;
     }
-    
-    $('#imagesGallery').show();
-    $('#noImagesMessage').hide();
-    
-    // Reset to page 1 if current page is out of bounds
-    const totalPages = Math.ceil(filteredImages.length / imagesPerPage);
-    if (currentPage > totalPages && totalPages > 0) {
-        currentPage = 1;
-    }
-    
-    displayImagesWithPagination();
 }
 
 function displayImagesWithPagination() {
@@ -256,4 +266,3 @@ function openImageModal(imageUrl, imageTitle) {
         }
     });
 }
-
