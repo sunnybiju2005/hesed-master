@@ -195,21 +195,28 @@ async function saveNewsItem() {
     };
 
     try {
-        // Handle image upload to Firebase Storage
+        // Handle image upload to Cloudinary
         if (imageFile) {
+            console.log('Starting image upload for news item...');
             const imagePath = `news/${Date.now()}_${imageFile.name}`;
             const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath);
+            console.log('Image uploaded successfully, URL:', imageUrl);
             newItem.image = imageUrl;
         }
 
         // Save to Firebase
+        console.log('Saving news item to Firestore...');
         await saveNewsItemToFirebase(newItem);
         loadNewsItems();
         clearNewsForm();
         showMessage('newsMessage', 'News item saved successfully!', 'success');
     } catch (error) {
         console.error('Error saving news item:', error);
-        showMessage('newsMessage', 'Error saving news item. Please try again.', 'error');
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack
+        });
+        showMessage('newsMessage', `Error: ${error.message}`, 'error');
     }
 }
 

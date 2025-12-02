@@ -14,5 +14,5 @@ firebase.initializeApp(firebaseConfig);
 
 // Initialize services
 const db = firebase.firestore();
-const storage = firebase.storage();
+// Note: Storage is now handled by Cloudinary, not Firebase Storage
 

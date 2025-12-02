@@ -15,12 +15,11 @@ This application has been migrated to use Firebase Firestore for data storage an
 3. Start in **test mode** (you can secure it later)
 4. Choose a location for your database
 
-## Step 3: Enable Firebase Storage
+## Step 3: Image Storage - Cloudinary (Not Firebase Storage)
 
-1. In your Firebase project, go to "Storage"
-2. Click "Get started"
-3. Start in **test mode** (you can secure it later)
-4. Use the same location as your Firestore database
+**Note:** This application uses **Cloudinary** for image storage instead of Firebase Storage. Cloudinary offers a generous free tier (25GB storage, 25GB bandwidth/month).
+
+**You do NOT need to enable Firebase Storage.** Instead, follow the Cloudinary setup instructions in `CLOUDINARY_SETUP.md`.
 
 ## Step 4: Get Your Firebase Configuration
 
@@ -74,27 +73,9 @@ service cloud.firestore {
 }
 ```
 
-### Storage Security Rules
+### Image Storage - Cloudinary
 
-Go to Storage > Rules and update:
-
-```javascript
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      // Allow read access to all files
-      allow read: if true;
-      
-      // Allow write access only to authenticated users (or adjust as needed)
-      allow write: if request.auth != null;
-      
-      // For public write access (less secure, use only for testing):
-      // allow write: if true;
-    }
-  }
-}
-```
+**Note:** Image storage is handled by Cloudinary, not Firebase Storage. See `CLOUDINARY_SETUP.md` for Cloudinary security configuration.
 
 ## Step 7: Test Your Setup
 
@@ -120,12 +101,19 @@ The following collections will be created automatically in Firestore:
 
 ## Image Storage
 
-Images are stored in Firebase Storage under the following paths:
+Images are stored in **Cloudinary** (not Firebase Storage) under the following folders:
 - `news/` - News item images
 - `activities/` - Activity images
 - `events/` - Event photos
-- `teams/` - Team member profile images
+- `teams/service/` - Service team member images
+- `teams/clc/` - CLC team member images
+- `teams/kcym/` - KCYM team member images
+- `teams/choir/` - Choir team member images
+- `teams/mathrusangam/` - Mathrusangam team member images
 - `church/` - Church gallery images
+- `father/` - Father profile image
+
+See `CLOUDINARY_SETUP.md` for setup instructions.
 
 ## Troubleshooting
 
@@ -134,9 +122,10 @@ Images are stored in Firebase Storage under the following paths:
 - Check that `firebase-config.js` is loaded after Firebase SDK
 
 ### Images not uploading
-- Check Firebase Storage rules
+- Check Cloudinary configuration in `js/cloudinary-config.js`
+- Verify your Cloudinary upload preset is set to "Unsigned"
 - Check browser console for errors
-- Verify Firebase Storage is enabled in your project
+- See `CLOUDINARY_SETUP.md` for troubleshooting
 
 ### Data not saving
 - Check Firestore rules

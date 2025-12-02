@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudinary Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cloudinary Upload Test</h1>
+    <p>This page tests if Cloudinary uploads are working correctly.</p>
+    
+    <div>
+        <label for="testImage">Select an image to upload:</label><br>
+        <input type="file" id="testImage" accept="image/*">
+    </div>
+    
+    <button onclick="testUpload()">Upload Image</button>
+    
+    <div id="result"></div>
+    
+    <script src="js/cloudinary-config.js"></script>
+    <script src="js/cloudinary-service.js"></script>
+    <script>
+        async function testUpload() {
+            const fileInput = document.getElementById('testImage');
+            const resultDiv = document.getElementById('result');
+            
+            if (!fileInput.files || !fileInput.files[0]) {
+                resultDiv.innerHTML = '<p class="error">Please select an image first.</p>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = '<p>Uploading...</p>';
+            
+            try {
+                // Check config
+                console.log('Cloudinary Config:', cloudinaryConfig);
+                console.log('Upload URL:', cloudinaryUploadUrl);
+                
+                if (!cloudinaryConfig || !cloudinaryConfig.uploadPreset) {
+                    throw new Error('Cloudinary configuration not loaded!');
+                }
+                
+                // Upload to test folder
+                const imageUrl = await uploadImageToCloudinary(file, 'test');
+                
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `
+                    <p><strong>Upload Successful!</strong></p>
+                    <p>Image URL: <a href="${imageUrl}" target="_blank">${imageUrl}</a></p>
+                    <img src="${imageUrl}" alt="Uploaded image">
+                `;
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `
+                    <p><strong>Upload Failed!</strong></p>
+                    <p>Error: ${error.message}</p>
+                    <p>Check the browser console (F12) for more details.</p>
+                `;
+                console.error('Upload error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -500,55 +500,27 @@ async function getAllChurchImagesFromFirebase() {
     }
 }
 
-// ========== IMAGE UPLOAD TO FIREBASE STORAGE ==========
+// ========== IMAGE UPLOAD TO CLOUDINARY ==========
+// Note: These functions are now wrappers that call Cloudinary service
+// The actual implementation is in cloudinary-service.js
 
 async function uploadImageToFirebaseStorage(file, path) {
-    try {
-        const storageRef = storage.ref();
-        const fileRef = storageRef.child(path);
-        const snapshot = await fileRef.put(file);
-        const downloadURL = await snapshot.ref.getDownloadURL();
-        return downloadURL;
-    } catch (error) {
-        console.error('Error uploading image:', error);
-        throw error;
-    }
+    // This function name is kept for compatibility
+    // Extract folder from path (e.g., 'news/123_image.jpg' -> 'news')
+    const folder = path.split('/')[0] || '';
+    return await uploadImageToCloudinary(file, folder);
 }
 
 async function deleteImageFromFirebaseStorage(url) {
-    try {
-        // Extract the path from the URL
-        const urlObj = new URL(url);
-        const path = decodeURIComponent(urlObj.pathname.split('/o/')[1].split('?')[0]);
-        const storageRef = storage.ref(path);
-        await storageRef.delete();
-    } catch (error) {
-        console.error('Error deleting image:', error);
-        // Don't throw - image might not exist in storage if it's a data URL
-    }
+    // This function name is kept for compatibility
+    // Cloudinary deletion requires server-side implementation
+    return await deleteImageFromCloudinary(url);
 }
 
-// Convert base64 data URL to Blob for Firebase Storage
-function dataURLtoBlob(dataurl) {
-    const arr = dataurl.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new Blob([u8arr], { type: mime });
-}
-
-// Helper function to upload base64 image to Firebase Storage
+// Helper function to upload base64 image
 async function uploadBase64ImageToFirebaseStorage(dataUrl, path) {
-    try {
-        const blob = dataURLtoBlob(dataUrl);
-        return await uploadImageToFirebaseStorage(blob, path);
-    } catch (error) {
-        console.error('Error uploading base64 image:', error);
-        throw error;
-    }
+    // This function name is kept for compatibility
+    const folder = path.split('/')[0] || '';
+    return await uploadBase64ImageToCloudinary(dataUrl, folder);
 }
 
