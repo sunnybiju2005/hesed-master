@@ -8,11 +8,11 @@ $(document).ready(function() {
         newsLoaderInitialized = true;
     }
     
-    // Listen for Firestore changes to update news dynamically (only if on index page)
+    // Listen for Realtime Database changes to update news dynamically (only if on index page)
     if (window.location.pathname.includes('index.html') || window.location.pathname.endsWith('/')) {
         // Set up real-time listener for news updates
         if (typeof db !== 'undefined') {
-            db.collection('news').onSnapshot(function(snapshot) {
+            db.ref('news').on('value', function(snapshot) {
                 loadNewsToIndexPage();
             });
         }

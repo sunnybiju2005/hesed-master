@@ -1202,7 +1202,8 @@ function getAllChurchImagesFromFirebase() {
     }
   }, null, null, [[0, 7]]);
 } // ========== IMAGE UPLOAD TO CLOUDINARY ==========
-// Note: These functions are now wrappers that call Cloudinary service
+// IMPORTANT: These functions use CLOUDINARY, not Firebase Storage!
+// Function names kept for compatibility, but they call Cloudinary service
 // The actual implementation is in cloudinary-service.js
 
 
@@ -1212,16 +1213,18 @@ function uploadImageToFirebaseStorage(file, path) {
     while (1) {
       switch (_context40.prev = _context40.next) {
         case 0:
-          // This function name is kept for compatibility
+          // NOTE: This function actually uploads to CLOUDINARY, not Firebase Storage
+          // Function name kept for backward compatibility
           // Extract folder from path (e.g., 'news/123_image.jpg' -> 'news')
           folder = path.split('/')[0] || '';
-          _context40.next = 3;
+          console.log('Uploading image to Cloudinary (not Firebase Storage)');
+          _context40.next = 4;
           return regeneratorRuntime.awrap(uploadImageToCloudinary(file, folder));
 
-        case 3:
+        case 4:
           return _context40.abrupt("return", _context40.sent);
 
-        case 4:
+        case 5:
         case "end":
           return _context40.stop();
       }
@@ -1234,18 +1237,30 @@ function deleteImageFromFirebaseStorage(url) {
     while (1) {
       switch (_context41.prev = _context41.next) {
         case 0:
-          _context41.next = 2;
+          // NOTE: This function actually deletes from CLOUDINARY, not Firebase Storage
+          // Function name kept for backward compatibility
+          console.log('Deleting image from Cloudinary (not Firebase Storage)');
+          _context41.prev = 1;
+          _context41.next = 4;
           return regeneratorRuntime.awrap(deleteImageFromCloudinary(url));
 
-        case 2:
-          return _context41.abrupt("return", _context41.sent);
+        case 4:
+          console.log('Image successfully deleted from Cloudinary');
+          _context41.next = 10;
+          break;
 
-        case 3:
+        case 7:
+          _context41.prev = 7;
+          _context41.t0 = _context41["catch"](1);
+          console.error('Failed to delete image from Cloudinary:', _context41.t0); // Don't throw - allow deletion to continue even if image deletion fails
+          // This way the data is still removed from Firestore
+
+        case 10:
         case "end":
           return _context41.stop();
       }
     }
-  });
+  }, null, null, [[1, 7]]);
 } // Helper function to upload base64 image
 
 
@@ -1255,7 +1270,8 @@ function uploadBase64ImageToFirebaseStorage(dataUrl, path) {
     while (1) {
       switch (_context42.prev = _context42.next) {
         case 0:
-          // This function name is kept for compatibility
+          // NOTE: This function actually uploads to CLOUDINARY, not Firebase Storage
+          // Function name kept for backward compatibility
           folder = path.split('/')[0] || '';
           _context42.next = 3;
           return regeneratorRuntime.awrap(uploadBase64ImageToCloudinary(dataUrl, folder));

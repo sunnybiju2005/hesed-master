@@ -14,10 +14,10 @@ $(document).ready(function() {
         filterEvents($(this).val());
     });
     
-    // Listen for Firestore changes
+    // Listen for Realtime Database changes
     if (window.location.pathname.includes('events.html')) {
         if (typeof db !== 'undefined') {
-            db.collection('events').onSnapshot(function(snapshot) {
+            db.ref('events').on('value', function(snapshot) {
                 currentPage = 1;
                 loadEventsToPage();
             });

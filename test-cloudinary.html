@@ -71,36 +71,103 @@
             }
             
             const file = fileInput.files[0];
-            resultDiv.innerHTML = '<p>Uploading...</p>';
+            resultDiv.innerHTML = '<p>Uploading... Please check console (F12) for details.</p>';
             
             try {
                 // Check config
-                console.log('Cloudinary Config:', cloudinaryConfig);
-                console.log('Upload URL:', cloudinaryUploadUrl);
+                console.log('=== TEST UPLOAD START ===');
+                console.log('1. Checking Cloudinary Config...');
+                console.log('Config exists?', typeof cloudinaryConfig !== 'undefined');
                 
-                if (!cloudinaryConfig || !cloudinaryConfig.uploadPreset) {
-                    throw new Error('Cloudinary configuration not loaded!');
+                if (typeof cloudinaryConfig === 'undefined') {
+                    throw new Error('cloudinaryConfig is not defined! Check if cloudinary-config.js is loaded.');
                 }
                 
-                // Upload to test folder
+                console.log('Cloudinary Config:', cloudinaryConfig);
+                console.log('Upload Preset:', cloudinaryConfig.uploadPreset);
+                console.log('Cloud Name:', cloudinaryConfig.cloudName);
+                
+                if (!cloudinaryConfig.uploadPreset) {
+                    throw new Error('Upload preset is missing in configuration!');
+                }
+                
+                console.log('2. Checking Upload URL...');
+                console.log('Upload URL exists?', typeof cloudinaryUploadUrl !== 'undefined');
+                console.log('Upload URL:', cloudinaryUploadUrl);
+                
+                console.log('3. Checking Upload Function...');
+                console.log('uploadImageToCloudinary exists?', typeof uploadImageToCloudinary !== 'undefined');
+                
+                if (typeof uploadImageToCloudinary === 'undefined') {
+                    throw new Error('uploadImageToCloudinary function is not defined! Check if cloudinary-service.js is loaded.');
+                }
+                
+                console.log('4. File Details:');
+                console.log('  - Name:', file.name);
+                console.log('  - Size:', file.size, 'bytes');
+                console.log('  - Type:', file.type);
+                
+                console.log('5. Starting upload...');
+                // Upload to test folder (will be: stpaulschurch/test)
                 const imageUrl = await uploadImageToCloudinary(file, 'test');
+                
+                console.log('6. Upload completed successfully!');
+                console.log('Image URL:', imageUrl);
                 
                 resultDiv.className = 'success';
                 resultDiv.innerHTML = `
-                    <p><strong>Upload Successful!</strong></p>
-                    <p>Image URL: <a href="${imageUrl}" target="_blank">${imageUrl}</a></p>
-                    <img src="${imageUrl}" alt="Uploaded image">
+                    <p><strong>✅ Upload Successful!</strong></p>
+                    <p><strong>Image URL:</strong> <a href="${imageUrl}" target="_blank">${imageUrl}</a></p>
+                    <p><strong>Check Cloudinary:</strong> Go to Media Library → stpaulschurch → test folder</p>
+                    <img src="${imageUrl}" alt="Uploaded image" style="max-width: 100%; margin-top: 10px;">
                 `;
             } catch (error) {
+                console.error('=== UPLOAD ERROR ===');
+                console.error('Error type:', error.constructor.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                
                 resultDiv.className = 'error';
                 resultDiv.innerHTML = `
-                    <p><strong>Upload Failed!</strong></p>
-                    <p>Error: ${error.message}</p>
-                    <p>Check the browser console (F12) for more details.</p>
+                    <p><strong>❌ Upload Failed!</strong></p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p><strong>Details:</strong> Check the browser console (F12) for full error details.</p>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        Common issues:<br>
+                        • Upload preset not found - Check preset name matches exactly<br>
+                        • Preset not set to "Unsigned" - Check Cloudinary dashboard<br>
+                        • Network error - Check internet connection<br>
+                        • CORS error - Should not happen with Cloudinary
+                    </p>
                 `;
-                console.error('Upload error:', error);
             }
         }
+        
+        // Test configuration on page load
+        window.addEventListener('load', function() {
+            console.log('=== PAGE LOADED ===');
+            console.log('Checking if Cloudinary is configured...');
+            
+            if (typeof cloudinaryConfig !== 'undefined') {
+                console.log('✅ cloudinaryConfig loaded');
+                console.log('  Cloud Name:', cloudinaryConfig.cloudName);
+                console.log('  Upload Preset:', cloudinaryConfig.uploadPreset);
+            } else {
+                console.error('❌ cloudinaryConfig NOT loaded!');
+            }
+            
+            if (typeof cloudinaryUploadUrl !== 'undefined') {
+                console.log('✅ cloudinaryUploadUrl loaded:', cloudinaryUploadUrl);
+            } else {
+                console.error('❌ cloudinaryUploadUrl NOT loaded!');
+            }
+            
+            if (typeof uploadImageToCloudinary !== 'undefined') {
+                console.log('✅ uploadImageToCloudinary function loaded');
+            } else {
+                console.error('❌ uploadImageToCloudinary function NOT loaded!');
+            }
+        });
     </script>
 </body>
 </html>

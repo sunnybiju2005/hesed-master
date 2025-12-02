@@ -142,42 +142,148 @@ async function uploadBase64ImageToCloudinary(dataUrl, folder = '') {
 
 /**
  * Delete image from Cloudinary
- * Note: This requires server-side implementation or Cloudinary Admin API
- * For client-side, we'll just return success (actual deletion should be done server-side)
+ * Uses Cloudinary Admin API to delete images
  * @param {string} imageUrl - The Cloudinary image URL
  * @returns {Promise<void>}
  */
 async function deleteImageFromCloudinary(imageUrl) {
     try {
+        // Check if it's a Cloudinary URL
+        if (!imageUrl || !imageUrl.includes('cloudinary.com')) {
+            console.warn('Not a Cloudinary URL, skipping deletion:', imageUrl);
+            return;
+        }
+
         // Extract public_id from Cloudinary URL
-        // Cloudinary URLs format: https://res.cloudinary.com/{cloud_name}/image/upload/{transformations}/{public_id}.{format}
-        const urlParts = imageUrl.split('/upload/');
-        if (urlParts.length < 2) {
-            console.warn('Invalid Cloudinary URL:', imageUrl);
+        // Cloudinary URLs format: 
+        // https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{public_id}.{format}
+        // Example: https://res.cloudinary.com/dwzajmb65/image/upload/v1764671363/teams/qtcyowcgjlklaz5tny02.png
+        // public_id should be: teams/qtcyowcgjlklaz5tny02
+        
+        let publicId = '';
+        
+        try {
+            const urlParts = imageUrl.split('/upload/');
+            if (urlParts.length >= 2) {
+                const pathAfterUpload = urlParts[1];
+                
+                // Remove version prefix (v1234567890/) if present
+                let pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, '');
+                
+                // Remove any transformation parameters (w_100,h_100,c_fill, etc.)
+                // Transformations are usually before the filename
+                const pathSegments = pathWithoutVersion.split('/');
+                
+                // Find the last segment that looks like a filename (has extension)
+                let filenameIndex = -1;
+                for (let i = pathSegments.length - 1; i >= 0; i--) {
+                    if (pathSegments[i].includes('.')) {
+                        filenameIndex = i;
+                        break;
+                    }
+                }
+                
+                if (filenameIndex >= 0) {
+                    // Remove file extension from filename
+                    const filename = pathSegments[filenameIndex].replace(/\.[^/.]+$/, '');
+                    
+                    // Reconstruct public_id with folder path
+                    if (filenameIndex > 0) {
+                        const folders = pathSegments.slice(0, filenameIndex).join('/');
+                        publicId = folders + '/' + filename;
+                    } else {
+                        publicId = filename;
+                    }
+                } else {
+                    // Fallback: remove extension from last segment
+                    const lastSegment = pathSegments[pathSegments.length - 1];
+                    publicId = lastSegment.replace(/\.[^/.]+$/, '');
+                    if (pathSegments.length > 1) {
+                        const folders = pathSegments.slice(0, -1).join('/');
+                        publicId = folders + '/' + publicId;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Could not extract public_id from URL:', imageUrl, e);
+            return;
+        }
+
+        if (!publicId) {
+            console.warn('Could not extract public_id from URL:', imageUrl);
             return;
         }
         
-        const pathAfterUpload = urlParts[1];
-        // Remove any transformations and get the public_id
-        const parts = pathAfterUpload.split('/');
-        const publicIdWithExt = parts[parts.length - 1];
-        const publicId = publicIdWithExt.split('.')[0];
+        console.log('Extracted public_id:', publicId, 'from URL:', imageUrl);
+
+        console.log('Deleting image from Cloudinary:', {
+            url: imageUrl,
+            publicId: publicId
+        });
+
+        // Generate signature for Cloudinary Admin API
+        // We need: timestamp, signature (SHA1 of: public_id + timestamp + api_secret)
+        const timestamp = Math.round(new Date().getTime() / 1000);
+        const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${cloudinaryConfig.apiSecret}`;
         
-        // Note: Actual deletion requires server-side API call with API secret
-        // For now, we'll just log it. You can implement server-side deletion later
-        console.log('Image deletion requested for:', publicId);
-        console.warn('Note: Image deletion from Cloudinary requires server-side implementation');
+        // Generate SHA1 hash (simple implementation)
+        const signature = await generateSHA1(stringToSign);
+
+        // Call Cloudinary destroy API
+        const destroyUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/destroy`;
+        const formData = new FormData();
+        formData.append('public_id', publicId);
+        formData.append('timestamp', timestamp.toString());
+        formData.append('api_key', cloudinaryConfig.apiKey);
+        formData.append('signature', signature);
+
+        const response = await fetch(destroyUrl, {
+            method: 'POST',
+            body: formData
+        });
+
+        const responseText = await response.text();
         
-        // If you have a server endpoint for deletion, call it here:
-        // await fetch('/api/delete-cloudinary-image', {
-        //     method: 'POST',
-        //     body: JSON.stringify({ publicId }),
-        //     headers: { 'Content-Type': 'application/json' }
-        // });
+        if (!response.ok) {
+            console.error('Cloudinary deletion failed:', {
+                status: response.status,
+                statusText: response.statusText,
+                response: responseText
+            });
+            throw new Error(`Cloudinary deletion failed: ${response.status}`);
+        }
+
+        const result = JSON.parse(responseText);
+        if (result.result === 'ok') {
+            console.log('Image successfully deleted from Cloudinary:', publicId);
+        } else {
+            console.warn('Cloudinary deletion response:', result);
+        }
     } catch (error) {
         console.error('Error deleting image from Cloudinary:', error);
         // Don't throw - deletion failure shouldn't break the app
+        // But log it so user knows
+        throw error; // Actually, let's throw so the caller knows it failed
     }
+}
+
+/**
+ * Generate SHA1 hash (for Cloudinary signature)
+ * @param {string} message - String to hash
+ * @returns {Promise<string>} - SHA1 hash
+ */
+async function generateSHA1(message) {
+    // Convert string to ArrayBuffer
+    const msgBuffer = new TextEncoder().encode(message);
+    
+    // Hash the message
+    const hashBuffer = await crypto.subtle.digest('SHA-1', msgBuffer);
+    
+    // Convert ArrayBuffer to hex string
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return hashHex;
 }
 
 /**

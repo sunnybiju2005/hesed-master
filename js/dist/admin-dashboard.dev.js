@@ -280,6 +280,7 @@ function saveActivityItem() {
 
         case 12:
           imageUrl = _context2.sent;
+          // Actually uses Cloudinary
           newItem.image = imageUrl;
 
         case 14:
@@ -706,13 +707,14 @@ function saveServiceTeamMember() {
 
         case 9:
           _context9.prev = 9;
-          // Upload image to Firebase Storage
+          // Upload image to Cloudinary (not Firebase Storage)
           imagePath = "teams/service/".concat(Date.now(), "_").concat(imageFile.name);
           _context9.next = 13;
           return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
 
         case 13:
           imageUrl = _context9.sent;
+          // Actually uses Cloudinary
           newMember = {
             name: name,
             position: position,
@@ -1022,557 +1024,1329 @@ function updateAboutPageServiceTeam() {
 
 
 function saveCLCTeamMember() {
-  var name = $('#clcMemberName').val();
-  var position = $('#clcMemberPosition').val();
-  var imageFile = $('#clcMemberImage')[0].files[0];
+  var name, position, imageFile, imagePath, imageUrl, newMember;
+  return regeneratorRuntime.async(function saveCLCTeamMember$(_context14) {
+    while (1) {
+      switch (_context14.prev = _context14.next) {
+        case 0:
+          name = $('#clcMemberName').val();
+          position = $('#clcMemberPosition').val();
+          imageFile = $('#clcMemberImage')[0].files[0];
 
-  if (!name || !position) {
-    showMessage('clcTeamMessage', 'Please fill in all fields', 'error');
-    return;
-  }
+          if (!(!name || !position)) {
+            _context14.next = 6;
+            break;
+          }
 
-  var clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-  var newMember = {
-    id: Date.now(),
-    name: name,
-    position: position,
-    image: null
-  };
+          showMessage('clcTeamMessage', 'Please fill in all fields', 'error');
+          return _context14.abrupt("return");
 
-  if (imageFile) {
-    var reader = new FileReader();
+        case 6:
+          if (imageFile) {
+            _context14.next = 9;
+            break;
+          }
 
-    reader.onload = function (e) {
-      newMember.image = e.target.result;
-      clcTeam.push(newMember);
-      localStorage.setItem('clcTeam', JSON.stringify(clcTeam));
-      updateCLCPageTeam();
-      loadCLCTeamMembers();
-      clearCLCTeamForm();
-      showMessage('clcTeamMessage', 'CLC team member saved successfully!', 'success');
-    };
+          showMessage('clcTeamMessage', 'Please upload a profile image', 'error');
+          return _context14.abrupt("return");
 
-    reader.readAsDataURL(imageFile);
-  } else {
-    showMessage('clcTeamMessage', 'Please upload a profile image', 'error');
-  }
+        case 9:
+          _context14.prev = 9;
+          // Upload image to Cloudinary
+          imagePath = "teams/clc/".concat(Date.now(), "_").concat(imageFile.name);
+          _context14.next = 13;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
+
+        case 13:
+          imageUrl = _context14.sent;
+          // Actually uses Cloudinary
+          newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+          };
+          _context14.next = 17;
+          return regeneratorRuntime.awrap(saveCLCTeamMemberToFirebase(newMember));
+
+        case 17:
+          loadCLCTeamMembers();
+          clearCLCTeamForm();
+          showMessage('clcTeamMessage', 'CLC team member saved successfully!', 'success');
+          _context14.next = 26;
+          break;
+
+        case 22:
+          _context14.prev = 22;
+          _context14.t0 = _context14["catch"](9);
+          console.error('Error saving CLC team member:', _context14.t0);
+          showMessage('clcTeamMessage', 'Error saving member. Please try again.', 'error');
+
+        case 26:
+        case "end":
+          return _context14.stop();
+      }
+    }
+  }, null, null, [[9, 22]]);
 }
 
 function loadCLCTeamMembers() {
-  var clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-  var listContainer = $('#clcTeamList');
-  listContainer.empty();
+  var listContainer, clcTeam;
+  return regeneratorRuntime.async(function loadCLCTeamMembers$(_context15) {
+    while (1) {
+      switch (_context15.prev = _context15.next) {
+        case 0:
+          listContainer = $('#clcTeamList');
+          listContainer.empty();
+          _context15.prev = 2;
+          _context15.next = 5;
+          return regeneratorRuntime.awrap(getAllCLCTeamMembersFromFirebase());
 
-  if (clcTeam.length === 0) {
-    listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No CLC team members yet. Add your first member above.</p>');
-    return;
-  }
+        case 5:
+          clcTeam = _context15.sent;
 
-  clcTeam.forEach(function (member) {
-    var memberHtml = "\n            <div class=\"admin-item-card\">\n                <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                    ".concat(member.image ? "<img src=\"".concat(member.image, "\" alt=\"").concat(member.name, "\" style=\"width: 80px; height: 80px; border-radius: 50%; object-fit: cover;\">") : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>', "\n                    <div>\n                        <h3>").concat(member.name, "</h3>\n                        <p>").concat(member.position, "</p>\n                    </div>\n                </div>\n                <div class=\"admin-item-actions\">\n                    <button class=\"admin-btn admin-btn-secondary\" onclick=\"editCLCTeamMember(").concat(member.id, ")\">Edit</button>\n                    <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteCLCTeamMember(").concat(member.id, ")\">Delete</button>\n                </div>\n            </div>\n        ");
-    listContainer.append(memberHtml);
-  });
+          if (!(clcTeam.length === 0)) {
+            _context15.next = 9;
+            break;
+          }
+
+          listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No CLC team members yet. Add your first member above.</p>');
+          return _context15.abrupt("return");
+
+        case 9:
+          clcTeam.forEach(function (member) {
+            var memberHtml = "\n                <div class=\"admin-item-card\">\n                    <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                        ".concat(member.image ? "<img src=\"".concat(member.image, "\" alt=\"").concat(member.name, "\" style=\"width: 80px; height: 80px; border-radius: 50%; object-fit: cover;\">") : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>', "\n                        <div>\n                            <h3>").concat(member.name, "</h3>\n                            <p>").concat(member.position, "</p>\n                        </div>\n                    </div>\n                    <div class=\"admin-item-actions\">\n                        <button class=\"admin-btn admin-btn-secondary\" onclick=\"editCLCTeamMember('").concat(member.id, "')\">Edit</button>\n                        <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteCLCTeamMember('").concat(member.id, "')\">Delete</button>\n                    </div>\n                </div>\n            ");
+            listContainer.append(memberHtml);
+          });
+          _context15.next = 16;
+          break;
+
+        case 12:
+          _context15.prev = 12;
+          _context15.t0 = _context15["catch"](2);
+          console.error('Error loading CLC team members:', _context15.t0);
+          listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading CLC team. Please refresh the page.</p>');
+
+        case 16:
+        case "end":
+          return _context15.stop();
+      }
+    }
+  }, null, null, [[2, 12]]);
 }
 
 function editCLCTeamMember(id) {
-  var clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-  var member = clcTeam.find(function (m) {
-    return m.id === id;
-  });
+  var clcTeam, member;
+  return regeneratorRuntime.async(function editCLCTeamMember$(_context16) {
+    while (1) {
+      switch (_context16.prev = _context16.next) {
+        case 0:
+          _context16.prev = 0;
+          _context16.next = 3;
+          return regeneratorRuntime.awrap(getAllCLCTeamMembersFromFirebase());
 
-  if (member) {
-    $('#clcMemberName').val(member.name);
-    $('#clcMemberPosition').val(member.position);
+        case 3:
+          clcTeam = _context16.sent;
+          member = clcTeam.find(function (m) {
+            return m.id === id;
+          });
 
-    if (member.image) {
-      $('#clcMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+          if (member) {
+            $('#clcMemberName').val(member.name);
+            $('#clcMemberPosition').val(member.position);
+
+            if (member.image) {
+              $('#clcMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            }
+
+            $('.admin-sidebar-item[data-section="service-teams"]').click();
+            setTimeout(function () {
+              $('.admin-subsection-tab[data-subsection="clc-team"]').click();
+            }, 100);
+            $('#clcTeamForm').data('editingId', id);
+            $('#clcTeamForm').data('existingImage', member.image);
+          }
+
+          _context16.next = 12;
+          break;
+
+        case 8:
+          _context16.prev = 8;
+          _context16.t0 = _context16["catch"](0);
+          console.error('Error loading CLC team member for editing:', _context16.t0);
+          showMessage('clcTeamMessage', 'Error loading member. Please try again.', 'error');
+
+        case 12:
+        case "end":
+          return _context16.stop();
+      }
     }
-
-    $('.admin-sidebar-item[data-section="clc-team"]').click();
-    $('#clcTeamForm').data('editingId', id);
-  }
+  }, null, null, [[0, 8]]);
 }
 
 function updateCLCTeamMember(id) {
-  var name = $('#clcMemberName').val();
-  var position = $('#clcMemberPosition').val();
-  var imageFile = $('#clcMemberImage')[0].files[0];
+  var name, position, imageFile, clcTeam, member, updatedMember, imagePath;
+  return regeneratorRuntime.async(function updateCLCTeamMember$(_context17) {
+    while (1) {
+      switch (_context17.prev = _context17.next) {
+        case 0:
+          name = $('#clcMemberName').val();
+          position = $('#clcMemberPosition').val();
+          imageFile = $('#clcMemberImage')[0].files[0];
 
-  if (!name || !position) {
-    showMessage('clcTeamMessage', 'Please fill in all fields', 'error');
-    return;
-  }
+          if (!(!name || !position)) {
+            _context17.next = 6;
+            break;
+          }
 
-  var clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-  var memberIndex = clcTeam.findIndex(function (m) {
-    return m.id === id;
-  });
+          showMessage('clcTeamMessage', 'Please fill in all fields', 'error');
+          return _context17.abrupt("return");
 
-  if (memberIndex !== -1) {
-    clcTeam[memberIndex].name = name;
-    clcTeam[memberIndex].position = position;
+        case 6:
+          _context17.prev = 6;
+          _context17.next = 9;
+          return regeneratorRuntime.awrap(getAllCLCTeamMembersFromFirebase());
 
-    if (imageFile) {
-      var reader = new FileReader();
+        case 9:
+          clcTeam = _context17.sent;
+          member = clcTeam.find(function (m) {
+            return m.id === id;
+          });
 
-      reader.onload = function (e) {
-        clcTeam[memberIndex].image = e.target.result;
-        localStorage.setItem('clcTeam', JSON.stringify(clcTeam));
-        updateCLCPageTeam();
-        loadCLCTeamMembers();
-        clearCLCTeamForm();
-        showMessage('clcTeamMessage', 'CLC team member updated successfully!', 'success');
-      };
+          if (member) {
+            _context17.next = 14;
+            break;
+          }
 
-      reader.readAsDataURL(imageFile);
-    } else {
-      localStorage.setItem('clcTeam', JSON.stringify(clcTeam));
-      updateCLCPageTeam();
-      loadCLCTeamMembers();
-      clearCLCTeamForm();
-      showMessage('clcTeamMessage', 'CLC team member updated successfully!', 'success');
+          showMessage('clcTeamMessage', 'Member not found', 'error');
+          return _context17.abrupt("return");
+
+        case 14:
+          updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+
+          }; // Handle new image upload
+
+          if (!imageFile) {
+            _context17.next = 29;
+            break;
+          }
+
+          if (!member.image) {
+            _context17.next = 25;
+            break;
+          }
+
+          _context17.prev = 17;
+          _context17.next = 20;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(member.image));
+
+        case 20:
+          _context17.next = 25;
+          break;
+
+        case 22:
+          _context17.prev = 22;
+          _context17.t0 = _context17["catch"](17);
+          console.warn('Could not delete old image:', _context17.t0);
+
+        case 25:
+          // Upload new image to Cloudinary
+          imagePath = "teams/clc/".concat(Date.now(), "_").concat(imageFile.name);
+          _context17.next = 28;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
+
+        case 28:
+          updatedMember.image = _context17.sent;
+
+        case 29:
+          _context17.next = 31;
+          return regeneratorRuntime.awrap(updateCLCTeamMemberInFirebase(id, updatedMember));
+
+        case 31:
+          loadCLCTeamMembers();
+          clearCLCTeamForm();
+          showMessage('clcTeamMessage', 'CLC team member updated successfully!', 'success');
+          _context17.next = 40;
+          break;
+
+        case 36:
+          _context17.prev = 36;
+          _context17.t1 = _context17["catch"](6);
+          console.error('Error updating CLC team member:', _context17.t1);
+          showMessage('clcTeamMessage', 'Error updating member. Please try again.', 'error');
+
+        case 40:
+        case "end":
+          return _context17.stop();
+      }
     }
-  }
+  }, null, null, [[6, 36], [17, 22]]);
 }
 
 function deleteCLCTeamMember(id) {
-  if (confirm('Are you sure you want to delete this CLC team member?')) {
-    var clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-    clcTeam = clcTeam.filter(function (m) {
-      return m.id !== id;
-    });
-    localStorage.setItem('clcTeam', JSON.stringify(clcTeam));
-    updateCLCPageTeam();
-    loadCLCTeamMembers();
-    showMessage('clcTeamMessage', 'CLC team member deleted successfully!', 'success');
-  }
+  var clcTeam, member;
+  return regeneratorRuntime.async(function deleteCLCTeamMember$(_context18) {
+    while (1) {
+      switch (_context18.prev = _context18.next) {
+        case 0:
+          if (!confirm('Are you sure you want to delete this CLC team member?')) {
+            _context18.next = 25;
+            break;
+          }
+
+          _context18.prev = 1;
+          _context18.next = 4;
+          return regeneratorRuntime.awrap(getAllCLCTeamMembersFromFirebase());
+
+        case 4:
+          clcTeam = _context18.sent;
+          member = clcTeam.find(function (m) {
+            return m.id === id;
+          });
+
+          if (!(member && member.image)) {
+            _context18.next = 15;
+            break;
+          }
+
+          _context18.prev = 7;
+          _context18.next = 10;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(member.image));
+
+        case 10:
+          _context18.next = 15;
+          break;
+
+        case 12:
+          _context18.prev = 12;
+          _context18.t0 = _context18["catch"](7);
+          console.warn('Could not delete image from Cloudinary:', _context18.t0);
+
+        case 15:
+          _context18.next = 17;
+          return regeneratorRuntime.awrap(deleteCLCTeamMemberFromFirebase(id));
+
+        case 17:
+          loadCLCTeamMembers();
+          showMessage('clcTeamMessage', 'CLC team member deleted successfully!', 'success');
+          _context18.next = 25;
+          break;
+
+        case 21:
+          _context18.prev = 21;
+          _context18.t1 = _context18["catch"](1);
+          console.error('Error deleting CLC team member:', _context18.t1);
+          showMessage('clcTeamMessage', 'Error deleting member. Please try again.', 'error');
+
+        case 25:
+        case "end":
+          return _context18.stop();
+      }
+    }
+  }, null, null, [[1, 21], [7, 12]]);
 }
 
 function clearCLCTeamForm() {
   $('#clcTeamForm')[0].reset();
   $('#clcMemberImagePreview').empty();
   $('#clcTeamForm').removeData('editingId');
-}
-
-function updateCLCPageTeam() {
-  localStorage.setItem('clcPageTeamUpdated', Date.now().toString());
+  $('#clcTeamForm').removeData('existingImage');
 } // KCYM Team Functions
 
 
 function saveKCYMTeamMember() {
-  var name = $('#kcymMemberName').val();
-  var position = $('#kcymMemberPosition').val();
-  var imageFile = $('#kcymMemberImage')[0].files[0];
+  var name, position, imageFile, imagePath, imageUrl, newMember;
+  return regeneratorRuntime.async(function saveKCYMTeamMember$(_context19) {
+    while (1) {
+      switch (_context19.prev = _context19.next) {
+        case 0:
+          name = $('#kcymMemberName').val();
+          position = $('#kcymMemberPosition').val();
+          imageFile = $('#kcymMemberImage')[0].files[0];
 
-  if (!name || !position) {
-    showMessage('kcymTeamMessage', 'Please fill in all fields', 'error');
-    return;
-  }
+          if (!(!name || !position)) {
+            _context19.next = 6;
+            break;
+          }
 
-  var kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-  var newMember = {
-    id: Date.now(),
-    name: name,
-    position: position,
-    image: null
-  };
+          showMessage('kcymTeamMessage', 'Please fill in all fields', 'error');
+          return _context19.abrupt("return");
 
-  if (imageFile) {
-    var reader = new FileReader();
+        case 6:
+          if (imageFile) {
+            _context19.next = 9;
+            break;
+          }
 
-    reader.onload = function (e) {
-      newMember.image = e.target.result;
-      kcymTeam.push(newMember);
-      localStorage.setItem('kcymTeam', JSON.stringify(kcymTeam));
-      updateKCYMPageTeam();
-      loadKCYMTeamMembers();
-      clearKCYMTeamForm();
-      showMessage('kcymTeamMessage', 'KCYM team member saved successfully!', 'success');
-    };
+          showMessage('kcymTeamMessage', 'Please upload a profile image', 'error');
+          return _context19.abrupt("return");
 
-    reader.readAsDataURL(imageFile);
-  } else {
-    showMessage('kcymTeamMessage', 'Please upload a profile image', 'error');
-  }
+        case 9:
+          _context19.prev = 9;
+          // Upload image to Cloudinary
+          imagePath = "teams/kcym/".concat(Date.now(), "_").concat(imageFile.name);
+          _context19.next = 13;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
+
+        case 13:
+          imageUrl = _context19.sent;
+          // Actually uses Cloudinary
+          newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+          };
+          _context19.next = 17;
+          return regeneratorRuntime.awrap(saveKCYMTeamMemberToFirebase(newMember));
+
+        case 17:
+          loadKCYMTeamMembers();
+          clearKCYMTeamForm();
+          showMessage('kcymTeamMessage', 'KCYM team member saved successfully!', 'success');
+          _context19.next = 26;
+          break;
+
+        case 22:
+          _context19.prev = 22;
+          _context19.t0 = _context19["catch"](9);
+          console.error('Error saving KCYM team member:', _context19.t0);
+          showMessage('kcymTeamMessage', 'Error saving member. Please try again.', 'error');
+
+        case 26:
+        case "end":
+          return _context19.stop();
+      }
+    }
+  }, null, null, [[9, 22]]);
 }
 
 function loadKCYMTeamMembers() {
-  var kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-  var listContainer = $('#kcymTeamList');
-  listContainer.empty();
+  var listContainer, kcymTeam;
+  return regeneratorRuntime.async(function loadKCYMTeamMembers$(_context20) {
+    while (1) {
+      switch (_context20.prev = _context20.next) {
+        case 0:
+          listContainer = $('#kcymTeamList');
+          listContainer.empty();
+          _context20.prev = 2;
+          _context20.next = 5;
+          return regeneratorRuntime.awrap(getAllKCYMTeamMembersFromFirebase());
 
-  if (kcymTeam.length === 0) {
-    listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No KCYM team members yet. Add your first member above.</p>');
-    return;
-  }
+        case 5:
+          kcymTeam = _context20.sent;
 
-  kcymTeam.forEach(function (member) {
-    var memberHtml = "\n            <div class=\"admin-item-card\">\n                <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                    ".concat(member.image ? "<img src=\"".concat(member.image, "\" alt=\"").concat(member.name, "\" style=\"width: 80px; height: 80px; border-radius: 50%; object-fit: cover;\">") : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>', "\n                    <div>\n                        <h3>").concat(member.name, "</h3>\n                        <p>").concat(member.position, "</p>\n                    </div>\n                </div>\n                <div class=\"admin-item-actions\">\n                    <button class=\"admin-btn admin-btn-secondary\" onclick=\"editKCYMTeamMember(").concat(member.id, ")\">Edit</button>\n                    <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteKCYMTeamMember(").concat(member.id, ")\">Delete</button>\n                </div>\n            </div>\n        ");
-    listContainer.append(memberHtml);
-  });
+          if (!(kcymTeam.length === 0)) {
+            _context20.next = 9;
+            break;
+          }
+
+          listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No KCYM team members yet. Add your first member above.</p>');
+          return _context20.abrupt("return");
+
+        case 9:
+          kcymTeam.forEach(function (member) {
+            var memberHtml = "\n                <div class=\"admin-item-card\">\n                    <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                        ".concat(member.image ? "<img src=\"".concat(member.image, "\" alt=\"").concat(member.name, "\" style=\"width: 80px; height: 80px; border-radius: 50%; object-fit: cover;\">") : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>', "\n                        <div>\n                            <h3>").concat(member.name, "</h3>\n                            <p>").concat(member.position, "</p>\n                        </div>\n                    </div>\n                    <div class=\"admin-item-actions\">\n                        <button class=\"admin-btn admin-btn-secondary\" onclick=\"editKCYMTeamMember('").concat(member.id, "')\">Edit</button>\n                        <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteKCYMTeamMember('").concat(member.id, "')\">Delete</button>\n                    </div>\n                </div>\n            ");
+            listContainer.append(memberHtml);
+          });
+          _context20.next = 16;
+          break;
+
+        case 12:
+          _context20.prev = 12;
+          _context20.t0 = _context20["catch"](2);
+          console.error('Error loading KCYM team members:', _context20.t0);
+          listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading KCYM team. Please refresh the page.</p>');
+
+        case 16:
+        case "end":
+          return _context20.stop();
+      }
+    }
+  }, null, null, [[2, 12]]);
 }
 
 function editKCYMTeamMember(id) {
-  var kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-  var member = kcymTeam.find(function (m) {
-    return m.id === id;
-  });
+  var kcymTeam, member;
+  return regeneratorRuntime.async(function editKCYMTeamMember$(_context21) {
+    while (1) {
+      switch (_context21.prev = _context21.next) {
+        case 0:
+          _context21.prev = 0;
+          _context21.next = 3;
+          return regeneratorRuntime.awrap(getAllKCYMTeamMembersFromFirebase());
 
-  if (member) {
-    $('#kcymMemberName').val(member.name);
-    $('#kcymMemberPosition').val(member.position);
+        case 3:
+          kcymTeam = _context21.sent;
+          member = kcymTeam.find(function (m) {
+            return m.id === id;
+          });
 
-    if (member.image) {
-      $('#kcymMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+          if (member) {
+            $('#kcymMemberName').val(member.name);
+            $('#kcymMemberPosition').val(member.position);
+
+            if (member.image) {
+              $('#kcymMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            }
+
+            $('.admin-sidebar-item[data-section="service-teams"]').click();
+            setTimeout(function () {
+              $('.admin-subsection-tab[data-subsection="kcym-team"]').click();
+            }, 100);
+            $('#kcymTeamForm').data('editingId', id);
+            $('#kcymTeamForm').data('existingImage', member.image);
+          }
+
+          _context21.next = 12;
+          break;
+
+        case 8:
+          _context21.prev = 8;
+          _context21.t0 = _context21["catch"](0);
+          console.error('Error loading KCYM team member for editing:', _context21.t0);
+          showMessage('kcymTeamMessage', 'Error loading member. Please try again.', 'error');
+
+        case 12:
+        case "end":
+          return _context21.stop();
+      }
     }
-
-    $('.admin-sidebar-item[data-section="kcym-team"]').click();
-    $('#kcymTeamForm').data('editingId', id);
-  }
+  }, null, null, [[0, 8]]);
 }
 
 function updateKCYMTeamMember(id) {
-  var name = $('#kcymMemberName').val();
-  var position = $('#kcymMemberPosition').val();
-  var imageFile = $('#kcymMemberImage')[0].files[0];
+  var name, position, imageFile, kcymTeam, member, updatedMember, imagePath;
+  return regeneratorRuntime.async(function updateKCYMTeamMember$(_context22) {
+    while (1) {
+      switch (_context22.prev = _context22.next) {
+        case 0:
+          name = $('#kcymMemberName').val();
+          position = $('#kcymMemberPosition').val();
+          imageFile = $('#kcymMemberImage')[0].files[0];
 
-  if (!name || !position) {
-    showMessage('kcymTeamMessage', 'Please fill in all fields', 'error');
-    return;
-  }
+          if (!(!name || !position)) {
+            _context22.next = 6;
+            break;
+          }
 
-  var kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-  var memberIndex = kcymTeam.findIndex(function (m) {
-    return m.id === id;
-  });
+          showMessage('kcymTeamMessage', 'Please fill in all fields', 'error');
+          return _context22.abrupt("return");
 
-  if (memberIndex !== -1) {
-    kcymTeam[memberIndex].name = name;
-    kcymTeam[memberIndex].position = position;
+        case 6:
+          _context22.prev = 6;
+          _context22.next = 9;
+          return regeneratorRuntime.awrap(getAllKCYMTeamMembersFromFirebase());
 
-    if (imageFile) {
-      var reader = new FileReader();
+        case 9:
+          kcymTeam = _context22.sent;
+          member = kcymTeam.find(function (m) {
+            return m.id === id;
+          });
 
-      reader.onload = function (e) {
-        kcymTeam[memberIndex].image = e.target.result;
-        localStorage.setItem('kcymTeam', JSON.stringify(kcymTeam));
-        updateKCYMPageTeam();
-        loadKCYMTeamMembers();
-        clearKCYMTeamForm();
-        showMessage('kcymTeamMessage', 'KCYM team member updated successfully!', 'success');
-      };
+          if (member) {
+            _context22.next = 14;
+            break;
+          }
 
-      reader.readAsDataURL(imageFile);
-    } else {
-      localStorage.setItem('kcymTeam', JSON.stringify(kcymTeam));
-      updateKCYMPageTeam();
-      loadKCYMTeamMembers();
-      clearKCYMTeamForm();
-      showMessage('kcymTeamMessage', 'KCYM team member updated successfully!', 'success');
+          showMessage('kcymTeamMessage', 'Member not found', 'error');
+          return _context22.abrupt("return");
+
+        case 14:
+          updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+
+          }; // Handle new image upload
+
+          if (!imageFile) {
+            _context22.next = 29;
+            break;
+          }
+
+          if (!member.image) {
+            _context22.next = 25;
+            break;
+          }
+
+          _context22.prev = 17;
+          _context22.next = 20;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(member.image));
+
+        case 20:
+          _context22.next = 25;
+          break;
+
+        case 22:
+          _context22.prev = 22;
+          _context22.t0 = _context22["catch"](17);
+          console.warn('Could not delete old image:', _context22.t0);
+
+        case 25:
+          // Upload new image to Cloudinary
+          imagePath = "teams/kcym/".concat(Date.now(), "_").concat(imageFile.name);
+          _context22.next = 28;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
+
+        case 28:
+          updatedMember.image = _context22.sent;
+
+        case 29:
+          _context22.next = 31;
+          return regeneratorRuntime.awrap(updateKCYMTeamMemberInFirebase(id, updatedMember));
+
+        case 31:
+          loadKCYMTeamMembers();
+          clearKCYMTeamForm();
+          showMessage('kcymTeamMessage', 'KCYM team member updated successfully!', 'success');
+          _context22.next = 40;
+          break;
+
+        case 36:
+          _context22.prev = 36;
+          _context22.t1 = _context22["catch"](6);
+          console.error('Error updating KCYM team member:', _context22.t1);
+          showMessage('kcymTeamMessage', 'Error updating member. Please try again.', 'error');
+
+        case 40:
+        case "end":
+          return _context22.stop();
+      }
     }
-  }
+  }, null, null, [[6, 36], [17, 22]]);
 }
 
 function deleteKCYMTeamMember(id) {
-  if (confirm('Are you sure you want to delete this KCYM team member?')) {
-    var kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-    kcymTeam = kcymTeam.filter(function (m) {
-      return m.id !== id;
-    });
-    localStorage.setItem('kcymTeam', JSON.stringify(kcymTeam));
-    updateKCYMPageTeam();
-    loadKCYMTeamMembers();
-    showMessage('kcymTeamMessage', 'KCYM team member deleted successfully!', 'success');
-  }
+  var kcymTeam, member;
+  return regeneratorRuntime.async(function deleteKCYMTeamMember$(_context23) {
+    while (1) {
+      switch (_context23.prev = _context23.next) {
+        case 0:
+          if (!confirm('Are you sure you want to delete this KCYM team member?')) {
+            _context23.next = 25;
+            break;
+          }
+
+          _context23.prev = 1;
+          _context23.next = 4;
+          return regeneratorRuntime.awrap(getAllKCYMTeamMembersFromFirebase());
+
+        case 4:
+          kcymTeam = _context23.sent;
+          member = kcymTeam.find(function (m) {
+            return m.id === id;
+          });
+
+          if (!(member && member.image)) {
+            _context23.next = 15;
+            break;
+          }
+
+          _context23.prev = 7;
+          _context23.next = 10;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(member.image));
+
+        case 10:
+          _context23.next = 15;
+          break;
+
+        case 12:
+          _context23.prev = 12;
+          _context23.t0 = _context23["catch"](7);
+          console.warn('Could not delete image from Cloudinary:', _context23.t0);
+
+        case 15:
+          _context23.next = 17;
+          return regeneratorRuntime.awrap(deleteKCYMTeamMemberFromFirebase(id));
+
+        case 17:
+          loadKCYMTeamMembers();
+          showMessage('kcymTeamMessage', 'KCYM team member deleted successfully!', 'success');
+          _context23.next = 25;
+          break;
+
+        case 21:
+          _context23.prev = 21;
+          _context23.t1 = _context23["catch"](1);
+          console.error('Error deleting KCYM team member:', _context23.t1);
+          showMessage('kcymTeamMessage', 'Error deleting member. Please try again.', 'error');
+
+        case 25:
+        case "end":
+          return _context23.stop();
+      }
+    }
+  }, null, null, [[1, 21], [7, 12]]);
 }
 
 function clearKCYMTeamForm() {
   $('#kcymTeamForm')[0].reset();
   $('#kcymMemberImagePreview').empty();
   $('#kcymTeamForm').removeData('editingId');
-}
-
-function updateKCYMPageTeam() {
-  localStorage.setItem('kcymPageTeamUpdated', Date.now().toString());
+  $('#kcymTeamForm').removeData('existingImage');
 } // Mathrusangam Team Functions
 
 
 function saveMathrusangamTeamMember() {
-  var name = $('#mathrusangamMemberName').val();
-  var position = $('#mathrusangamMemberPosition').val();
-  var imageFile = $('#mathrusangamMemberImage')[0].files[0];
+  var name, position, imageFile, imagePath, imageUrl, newMember;
+  return regeneratorRuntime.async(function saveMathrusangamTeamMember$(_context24) {
+    while (1) {
+      switch (_context24.prev = _context24.next) {
+        case 0:
+          name = $('#mathrusangamMemberName').val();
+          position = $('#mathrusangamMemberPosition').val();
+          imageFile = $('#mathrusangamMemberImage')[0].files[0];
 
-  if (!name || !position) {
-    showMessage('mathrusangamTeamMessage', 'Please fill in all fields', 'error');
-    return;
-  }
+          if (!(!name || !position)) {
+            _context24.next = 6;
+            break;
+          }
 
-  var mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-  var newMember = {
-    id: Date.now(),
-    name: name,
-    position: position,
-    image: null
-  };
+          showMessage('mathrusangamTeamMessage', 'Please fill in all fields', 'error');
+          return _context24.abrupt("return");
 
-  if (imageFile) {
-    var reader = new FileReader();
+        case 6:
+          if (imageFile) {
+            _context24.next = 9;
+            break;
+          }
 
-    reader.onload = function (e) {
-      newMember.image = e.target.result;
-      mathrusangamTeam.push(newMember);
-      localStorage.setItem('mathrusangamTeam', JSON.stringify(mathrusangamTeam));
-      updateMathrusangamPageTeam();
-      loadMathrusangamTeamMembers();
-      clearMathrusangamTeamForm();
-      showMessage('mathrusangamTeamMessage', 'Mathrusangam team member saved successfully!', 'success');
-    };
+          showMessage('mathrusangamTeamMessage', 'Please upload a profile image', 'error');
+          return _context24.abrupt("return");
 
-    reader.readAsDataURL(imageFile);
-  } else {
-    showMessage('mathrusangamTeamMessage', 'Please upload a profile image', 'error');
-  }
+        case 9:
+          _context24.prev = 9;
+          // Upload image to Cloudinary
+          imagePath = "teams/mathrusangam/".concat(Date.now(), "_").concat(imageFile.name);
+          _context24.next = 13;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
+
+        case 13:
+          imageUrl = _context24.sent;
+          // Actually uses Cloudinary
+          newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+          };
+          _context24.next = 17;
+          return regeneratorRuntime.awrap(saveMathrusangamTeamMemberToFirebase(newMember));
+
+        case 17:
+          loadMathrusangamTeamMembers();
+          clearMathrusangamTeamForm();
+          showMessage('mathrusangamTeamMessage', 'Mathrusangam team member saved successfully!', 'success');
+          _context24.next = 26;
+          break;
+
+        case 22:
+          _context24.prev = 22;
+          _context24.t0 = _context24["catch"](9);
+          console.error('Error saving Mathrusangam team member:', _context24.t0);
+          showMessage('mathrusangamTeamMessage', 'Error saving member. Please try again.', 'error');
+
+        case 26:
+        case "end":
+          return _context24.stop();
+      }
+    }
+  }, null, null, [[9, 22]]);
 }
 
 function loadMathrusangamTeamMembers() {
-  var mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-  var listContainer = $('#mathrusangamTeamList');
-  listContainer.empty();
+  var listContainer, mathrusangamTeam;
+  return regeneratorRuntime.async(function loadMathrusangamTeamMembers$(_context25) {
+    while (1) {
+      switch (_context25.prev = _context25.next) {
+        case 0:
+          listContainer = $('#mathrusangamTeamList');
+          listContainer.empty();
+          _context25.prev = 2;
+          _context25.next = 5;
+          return regeneratorRuntime.awrap(getAllMathrusangamTeamMembersFromFirebase());
 
-  if (mathrusangamTeam.length === 0) {
-    listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No Mathrusangam team members yet. Add your first member above.</p>');
-    return;
-  }
+        case 5:
+          mathrusangamTeam = _context25.sent;
 
-  mathrusangamTeam.forEach(function (member) {
-    var memberHtml = "\n            <div class=\"admin-item-card\">\n                <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                    ".concat(member.image ? "<img src=\"".concat(member.image, "\" alt=\"").concat(member.name, "\" style=\"width: 80px; height: 80px; border-radius: 50%; object-fit: cover;\">") : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>', "\n                    <div>\n                        <h3>").concat(member.name, "</h3>\n                        <p>").concat(member.position, "</p>\n                    </div>\n                </div>\n                <div class=\"admin-item-actions\">\n                    <button class=\"admin-btn admin-btn-secondary\" onclick=\"editMathrusangamTeamMember(").concat(member.id, ")\">Edit</button>\n                    <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteMathrusangamTeamMember(").concat(member.id, ")\">Delete</button>\n                </div>\n            </div>\n        ");
-    listContainer.append(memberHtml);
-  });
+          if (!(mathrusangamTeam.length === 0)) {
+            _context25.next = 9;
+            break;
+          }
+
+          listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No Mathrusangam team members yet. Add your first member above.</p>');
+          return _context25.abrupt("return");
+
+        case 9:
+          mathrusangamTeam.forEach(function (member) {
+            var memberHtml = "\n                <div class=\"admin-item-card\">\n                    <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                        ".concat(member.image ? "<img src=\"".concat(member.image, "\" alt=\"").concat(member.name, "\" style=\"width: 80px; height: 80px; border-radius: 50%; object-fit: cover;\">") : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>', "\n                        <div>\n                            <h3>").concat(member.name, "</h3>\n                            <p>").concat(member.position, "</p>\n                        </div>\n                    </div>\n                    <div class=\"admin-item-actions\">\n                        <button class=\"admin-btn admin-btn-secondary\" onclick=\"editMathrusangamTeamMember('").concat(member.id, "')\">Edit</button>\n                        <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteMathrusangamTeamMember('").concat(member.id, "')\">Delete</button>\n                    </div>\n                </div>\n            ");
+            listContainer.append(memberHtml);
+          });
+          _context25.next = 16;
+          break;
+
+        case 12:
+          _context25.prev = 12;
+          _context25.t0 = _context25["catch"](2);
+          console.error('Error loading Mathrusangam team members:', _context25.t0);
+          listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading Mathrusangam team. Please refresh the page.</p>');
+
+        case 16:
+        case "end":
+          return _context25.stop();
+      }
+    }
+  }, null, null, [[2, 12]]);
 }
 
 function editMathrusangamTeamMember(id) {
-  var mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-  var member = mathrusangamTeam.find(function (m) {
-    return m.id === id;
-  });
+  var mathrusangamTeam, member;
+  return regeneratorRuntime.async(function editMathrusangamTeamMember$(_context26) {
+    while (1) {
+      switch (_context26.prev = _context26.next) {
+        case 0:
+          _context26.prev = 0;
+          _context26.next = 3;
+          return regeneratorRuntime.awrap(getAllMathrusangamTeamMembersFromFirebase());
 
-  if (member) {
-    $('#mathrusangamMemberName').val(member.name);
-    $('#mathrusangamMemberPosition').val(member.position);
+        case 3:
+          mathrusangamTeam = _context26.sent;
+          member = mathrusangamTeam.find(function (m) {
+            return m.id === id;
+          });
 
-    if (member.image) {
-      $('#mathrusangamMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+          if (member) {
+            $('#mathrusangamMemberName').val(member.name);
+            $('#mathrusangamMemberPosition').val(member.position);
+
+            if (member.image) {
+              $('#mathrusangamMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            }
+
+            $('.admin-sidebar-item[data-section="service-teams"]').click();
+            setTimeout(function () {
+              $('.admin-subsection-tab[data-subsection="mathrusangam-team"]').click();
+            }, 100);
+            $('#mathrusangamTeamForm').data('editingId', id);
+            $('#mathrusangamTeamForm').data('existingImage', member.image);
+          }
+
+          _context26.next = 12;
+          break;
+
+        case 8:
+          _context26.prev = 8;
+          _context26.t0 = _context26["catch"](0);
+          console.error('Error loading Mathrusangam team member for editing:', _context26.t0);
+          showMessage('mathrusangamTeamMessage', 'Error loading member. Please try again.', 'error');
+
+        case 12:
+        case "end":
+          return _context26.stop();
+      }
     }
-
-    $('.admin-sidebar-item[data-section="mathrusangam-team"]').click();
-    $('#mathrusangamTeamForm').data('editingId', id);
-  }
+  }, null, null, [[0, 8]]);
 }
 
 function updateMathrusangamTeamMember(id) {
-  var name = $('#mathrusangamMemberName').val();
-  var position = $('#mathrusangamMemberPosition').val();
-  var imageFile = $('#mathrusangamMemberImage')[0].files[0];
+  var name, position, imageFile, mathrusangamTeam, member, updatedMember, imagePath;
+  return regeneratorRuntime.async(function updateMathrusangamTeamMember$(_context27) {
+    while (1) {
+      switch (_context27.prev = _context27.next) {
+        case 0:
+          name = $('#mathrusangamMemberName').val();
+          position = $('#mathrusangamMemberPosition').val();
+          imageFile = $('#mathrusangamMemberImage')[0].files[0];
 
-  if (!name || !position) {
-    showMessage('mathrusangamTeamMessage', 'Please fill in all fields', 'error');
-    return;
-  }
+          if (!(!name || !position)) {
+            _context27.next = 6;
+            break;
+          }
 
-  var mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-  var memberIndex = mathrusangamTeam.findIndex(function (m) {
-    return m.id === id;
-  });
+          showMessage('mathrusangamTeamMessage', 'Please fill in all fields', 'error');
+          return _context27.abrupt("return");
 
-  if (memberIndex !== -1) {
-    mathrusangamTeam[memberIndex].name = name;
-    mathrusangamTeam[memberIndex].position = position;
+        case 6:
+          _context27.prev = 6;
+          _context27.next = 9;
+          return regeneratorRuntime.awrap(getAllMathrusangamTeamMembersFromFirebase());
 
-    if (imageFile) {
-      var reader = new FileReader();
+        case 9:
+          mathrusangamTeam = _context27.sent;
+          member = mathrusangamTeam.find(function (m) {
+            return m.id === id;
+          });
 
-      reader.onload = function (e) {
-        mathrusangamTeam[memberIndex].image = e.target.result;
-        localStorage.setItem('mathrusangamTeam', JSON.stringify(mathrusangamTeam));
-        updateMathrusangamPageTeam();
-        loadMathrusangamTeamMembers();
-        clearMathrusangamTeamForm();
-        showMessage('mathrusangamTeamMessage', 'Mathrusangam team member updated successfully!', 'success');
-      };
+          if (member) {
+            _context27.next = 14;
+            break;
+          }
 
-      reader.readAsDataURL(imageFile);
-    } else {
-      localStorage.setItem('mathrusangamTeam', JSON.stringify(mathrusangamTeam));
-      updateMathrusangamPageTeam();
-      loadMathrusangamTeamMembers();
-      clearMathrusangamTeamForm();
-      showMessage('mathrusangamTeamMessage', 'Mathrusangam team member updated successfully!', 'success');
+          showMessage('mathrusangamTeamMessage', 'Member not found', 'error');
+          return _context27.abrupt("return");
+
+        case 14:
+          updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+
+          }; // Handle new image upload
+
+          if (!imageFile) {
+            _context27.next = 29;
+            break;
+          }
+
+          if (!member.image) {
+            _context27.next = 25;
+            break;
+          }
+
+          _context27.prev = 17;
+          _context27.next = 20;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(member.image));
+
+        case 20:
+          _context27.next = 25;
+          break;
+
+        case 22:
+          _context27.prev = 22;
+          _context27.t0 = _context27["catch"](17);
+          console.warn('Could not delete old image:', _context27.t0);
+
+        case 25:
+          // Upload new image to Cloudinary
+          imagePath = "teams/mathrusangam/".concat(Date.now(), "_").concat(imageFile.name);
+          _context27.next = 28;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
+
+        case 28:
+          updatedMember.image = _context27.sent;
+
+        case 29:
+          _context27.next = 31;
+          return regeneratorRuntime.awrap(updateMathrusangamTeamMemberInFirebase(id, updatedMember));
+
+        case 31:
+          loadMathrusangamTeamMembers();
+          clearMathrusangamTeamForm();
+          showMessage('mathrusangamTeamMessage', 'Mathrusangam team member updated successfully!', 'success');
+          _context27.next = 40;
+          break;
+
+        case 36:
+          _context27.prev = 36;
+          _context27.t1 = _context27["catch"](6);
+          console.error('Error updating Mathrusangam team member:', _context27.t1);
+          showMessage('mathrusangamTeamMessage', 'Error updating member. Please try again.', 'error');
+
+        case 40:
+        case "end":
+          return _context27.stop();
+      }
     }
-  }
+  }, null, null, [[6, 36], [17, 22]]);
 }
 
 function deleteMathrusangamTeamMember(id) {
-  if (confirm('Are you sure you want to delete this Mathrusangam team member?')) {
-    var mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-    mathrusangamTeam = mathrusangamTeam.filter(function (m) {
-      return m.id !== id;
-    });
-    localStorage.setItem('mathrusangamTeam', JSON.stringify(mathrusangamTeam));
-    updateMathrusangamPageTeam();
-    loadMathrusangamTeamMembers();
-    showMessage('mathrusangamTeamMessage', 'Mathrusangam team member deleted successfully!', 'success');
-  }
+  var mathrusangamTeam, member;
+  return regeneratorRuntime.async(function deleteMathrusangamTeamMember$(_context28) {
+    while (1) {
+      switch (_context28.prev = _context28.next) {
+        case 0:
+          if (!confirm('Are you sure you want to delete this Mathrusangam team member?')) {
+            _context28.next = 25;
+            break;
+          }
+
+          _context28.prev = 1;
+          _context28.next = 4;
+          return regeneratorRuntime.awrap(getAllMathrusangamTeamMembersFromFirebase());
+
+        case 4:
+          mathrusangamTeam = _context28.sent;
+          member = mathrusangamTeam.find(function (m) {
+            return m.id === id;
+          });
+
+          if (!(member && member.image)) {
+            _context28.next = 15;
+            break;
+          }
+
+          _context28.prev = 7;
+          _context28.next = 10;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(member.image));
+
+        case 10:
+          _context28.next = 15;
+          break;
+
+        case 12:
+          _context28.prev = 12;
+          _context28.t0 = _context28["catch"](7);
+          console.warn('Could not delete image from Cloudinary:', _context28.t0);
+
+        case 15:
+          _context28.next = 17;
+          return regeneratorRuntime.awrap(deleteMathrusangamTeamMemberFromFirebase(id));
+
+        case 17:
+          loadMathrusangamTeamMembers();
+          showMessage('mathrusangamTeamMessage', 'Mathrusangam team member deleted successfully!', 'success');
+          _context28.next = 25;
+          break;
+
+        case 21:
+          _context28.prev = 21;
+          _context28.t1 = _context28["catch"](1);
+          console.error('Error deleting Mathrusangam team member:', _context28.t1);
+          showMessage('mathrusangamTeamMessage', 'Error deleting member. Please try again.', 'error');
+
+        case 25:
+        case "end":
+          return _context28.stop();
+      }
+    }
+  }, null, null, [[1, 21], [7, 12]]);
 }
 
 function clearMathrusangamTeamForm() {
   $('#mathrusangamTeamForm')[0].reset();
   $('#mathrusangamMemberImagePreview').empty();
   $('#mathrusangamTeamForm').removeData('editingId');
-}
-
-function updateMathrusangamPageTeam() {
-  localStorage.setItem('mathrusangamPageTeamUpdated', Date.now().toString());
+  $('#mathrusangamTeamForm').removeData('existingImage');
 } // Choir Team Functions
 
 
 function saveChoirTeamMember() {
-  var name = $('#choirMemberName').val();
-  var position = $('#choirMemberPosition').val();
-  var imageFile = $('#choirMemberImage')[0].files[0];
+  var name, position, imageFile, imagePath, imageUrl, newMember;
+  return regeneratorRuntime.async(function saveChoirTeamMember$(_context29) {
+    while (1) {
+      switch (_context29.prev = _context29.next) {
+        case 0:
+          name = $('#choirMemberName').val();
+          position = $('#choirMemberPosition').val();
+          imageFile = $('#choirMemberImage')[0].files[0];
 
-  if (!name || !position) {
-    showMessage('choirTeamMessage', 'Please fill in all fields', 'error');
-    return;
-  }
+          if (!(!name || !position)) {
+            _context29.next = 6;
+            break;
+          }
 
-  var choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-  var newMember = {
-    id: Date.now(),
-    name: name,
-    position: position,
-    image: null
-  };
+          showMessage('choirTeamMessage', 'Please fill in all fields', 'error');
+          return _context29.abrupt("return");
 
-  if (imageFile) {
-    var reader = new FileReader();
+        case 6:
+          if (imageFile) {
+            _context29.next = 9;
+            break;
+          }
 
-    reader.onload = function (e) {
-      newMember.image = e.target.result;
-      choirTeam.push(newMember);
-      localStorage.setItem('choirTeam', JSON.stringify(choirTeam));
-      updateChoirPageTeam();
-      loadChoirTeamMembers();
-      clearChoirTeamForm();
-      showMessage('choirTeamMessage', 'Choir team member saved successfully!', 'success');
-    };
+          showMessage('choirTeamMessage', 'Please upload a profile image', 'error');
+          return _context29.abrupt("return");
 
-    reader.readAsDataURL(imageFile);
-  } else {
-    showMessage('choirTeamMessage', 'Please upload a profile image', 'error');
-  }
+        case 9:
+          _context29.prev = 9;
+          // Upload image to Cloudinary
+          imagePath = "teams/choir/".concat(Date.now(), "_").concat(imageFile.name);
+          _context29.next = 13;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
+
+        case 13:
+          imageUrl = _context29.sent;
+          // Actually uses Cloudinary
+          newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+          };
+          _context29.next = 17;
+          return regeneratorRuntime.awrap(saveChoirTeamMemberToFirebase(newMember));
+
+        case 17:
+          loadChoirTeamMembers();
+          clearChoirTeamForm();
+          showMessage('choirTeamMessage', 'Choir team member saved successfully!', 'success');
+          _context29.next = 26;
+          break;
+
+        case 22:
+          _context29.prev = 22;
+          _context29.t0 = _context29["catch"](9);
+          console.error('Error saving Choir team member:', _context29.t0);
+          showMessage('choirTeamMessage', 'Error saving member. Please try again.', 'error');
+
+        case 26:
+        case "end":
+          return _context29.stop();
+      }
+    }
+  }, null, null, [[9, 22]]);
 }
 
 function loadChoirTeamMembers() {
-  var choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-  var listContainer = $('#choirTeamList');
+  var listContainer, choirTeam;
+  return regeneratorRuntime.async(function loadChoirTeamMembers$(_context30) {
+    while (1) {
+      switch (_context30.prev = _context30.next) {
+        case 0:
+          listContainer = $('#choirTeamList');
+          listContainer.empty();
+          _context30.prev = 2;
+          _context30.next = 5;
+          return regeneratorRuntime.awrap(getAllChoirTeamMembersFromFirebase());
 
-  if (choirTeam.length === 0) {
-    listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No choir team members yet. Add your first member above.</p>');
-    return;
-  }
+        case 5:
+          choirTeam = _context30.sent;
 
-  listContainer.empty();
-  choirTeam.forEach(function (member) {
-    var memberHtml = "\n            <div class=\"admin-item-card\">\n                <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                    ".concat(member.image ? "<img src=\"".concat(member.image, "\" alt=\"").concat(member.name, "\" style=\"width: 100px; height: 100px; border-radius: 50%; object-fit: cover;\">") : '<div style="width: 100px; height: 100px; border-radius: 50%; background-color: #444444;"></div>', "\n                    <div style=\"flex: 1;\">\n                        <h3>").concat(member.name, "</h3>\n                        <p>").concat(member.position, "</p>\n                    </div>\n                </div>\n                <div class=\"admin-item-actions\">\n                    <button class=\"admin-btn admin-btn-secondary\" onclick=\"editChoirTeamMember(").concat(member.id, ")\">Edit</button>\n                    <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteChoirTeamMember(").concat(member.id, ")\">Delete</button>\n                </div>\n            </div>\n        ");
-    listContainer.append(memberHtml);
-  });
+          if (!(choirTeam.length === 0)) {
+            _context30.next = 9;
+            break;
+          }
+
+          listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No choir team members yet. Add your first member above.</p>');
+          return _context30.abrupt("return");
+
+        case 9:
+          choirTeam.forEach(function (member) {
+            var memberHtml = "\n                <div class=\"admin-item-card\">\n                    <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                        ".concat(member.image ? "<img src=\"".concat(member.image, "\" alt=\"").concat(member.name, "\" style=\"width: 100px; height: 100px; border-radius: 50%; object-fit: cover;\">") : '<div style="width: 100px; height: 100px; border-radius: 50%; background-color: #444444;"></div>', "\n                        <div style=\"flex: 1;\">\n                            <h3>").concat(member.name, "</h3>\n                            <p>").concat(member.position, "</p>\n                        </div>\n                    </div>\n                    <div class=\"admin-item-actions\">\n                        <button class=\"admin-btn admin-btn-secondary\" onclick=\"editChoirTeamMember('").concat(member.id, "')\">Edit</button>\n                        <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteChoirTeamMember('").concat(member.id, "')\">Delete</button>\n                    </div>\n                </div>\n            ");
+            listContainer.append(memberHtml);
+          });
+          _context30.next = 16;
+          break;
+
+        case 12:
+          _context30.prev = 12;
+          _context30.t0 = _context30["catch"](2);
+          console.error('Error loading Choir team members:', _context30.t0);
+          listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading Choir team. Please refresh the page.</p>');
+
+        case 16:
+        case "end":
+          return _context30.stop();
+      }
+    }
+  }, null, null, [[2, 12]]);
 }
 
 function editChoirTeamMember(id) {
-  var choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-  var member = choirTeam.find(function (m) {
-    return m.id === id;
-  });
+  var choirTeam, member;
+  return regeneratorRuntime.async(function editChoirTeamMember$(_context31) {
+    while (1) {
+      switch (_context31.prev = _context31.next) {
+        case 0:
+          _context31.prev = 0;
+          _context31.next = 3;
+          return regeneratorRuntime.awrap(getAllChoirTeamMembersFromFirebase());
 
-  if (member) {
-    $('#choirMemberName').val(member.name);
-    $('#choirMemberPosition').val(member.position);
+        case 3:
+          choirTeam = _context31.sent;
+          member = choirTeam.find(function (m) {
+            return m.id === id;
+          });
 
-    if (member.image) {
-      $('#choirMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
-    } // Switch to choir team section
+          if (member) {
+            $('#choirMemberName').val(member.name);
+            $('#choirMemberPosition').val(member.position);
+
+            if (member.image) {
+              $('#choirMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            } // Switch to choir team section
 
 
-    $('.admin-sidebar-item[data-section="service-teams"]').click();
-    setTimeout(function () {
-      $('.admin-subsection-tab[data-subsection="choir-team"]').click();
-    }, 100); // Store editing ID
+            $('.admin-sidebar-item[data-section="service-teams"]').click();
+            setTimeout(function () {
+              $('.admin-subsection-tab[data-subsection="choir-team"]').click();
+            }, 100); // Store editing ID
 
-    $('#choirTeamForm').data('editingId', id);
-    $('#choirTeamForm').data('existingImage', member.image);
-  }
+            $('#choirTeamForm').data('editingId', id);
+            $('#choirTeamForm').data('existingImage', member.image);
+          }
+
+          _context31.next = 12;
+          break;
+
+        case 8:
+          _context31.prev = 8;
+          _context31.t0 = _context31["catch"](0);
+          console.error('Error loading Choir team member for editing:', _context31.t0);
+          showMessage('choirTeamMessage', 'Error loading member. Please try again.', 'error');
+
+        case 12:
+        case "end":
+          return _context31.stop();
+      }
+    }
+  }, null, null, [[0, 8]]);
 }
 
 function updateChoirTeamMember(id) {
-  var name = $('#choirMemberName').val();
-  var position = $('#choirMemberPosition').val();
-  var imageFile = $('#choirMemberImage')[0].files[0];
+  var name, position, imageFile, choirTeam, member, updatedMember, imagePath;
+  return regeneratorRuntime.async(function updateChoirTeamMember$(_context32) {
+    while (1) {
+      switch (_context32.prev = _context32.next) {
+        case 0:
+          name = $('#choirMemberName').val();
+          position = $('#choirMemberPosition').val();
+          imageFile = $('#choirMemberImage')[0].files[0];
 
-  if (!name || !position) {
-    showMessage('choirTeamMessage', 'Please fill in all fields', 'error');
-    return;
-  }
+          if (!(!name || !position)) {
+            _context32.next = 6;
+            break;
+          }
 
-  var choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-  var memberIndex = choirTeam.findIndex(function (m) {
-    return m.id === id;
-  });
+          showMessage('choirTeamMessage', 'Please fill in all fields', 'error');
+          return _context32.abrupt("return");
 
-  if (memberIndex !== -1) {
-    choirTeam[memberIndex].name = name;
-    choirTeam[memberIndex].position = position;
+        case 6:
+          _context32.prev = 6;
+          _context32.next = 9;
+          return regeneratorRuntime.awrap(getAllChoirTeamMembersFromFirebase());
 
-    if (imageFile) {
-      var reader = new FileReader();
+        case 9:
+          choirTeam = _context32.sent;
+          member = choirTeam.find(function (m) {
+            return m.id === id;
+          });
 
-      reader.onload = function (e) {
-        choirTeam[memberIndex].image = e.target.result;
-        localStorage.setItem('choirTeam', JSON.stringify(choirTeam));
-        updateChoirPageTeam();
-        loadChoirTeamMembers();
-        clearChoirTeamForm();
-        showMessage('choirTeamMessage', 'Choir team member updated successfully!', 'success');
-      };
+          if (member) {
+            _context32.next = 14;
+            break;
+          }
 
-      reader.readAsDataURL(imageFile);
-    } else {
-      // Keep existing image
-      var existingImage = $('#choirTeamForm').data('existingImage');
+          showMessage('choirTeamMessage', 'Member not found', 'error');
+          return _context32.abrupt("return");
 
-      if (existingImage) {
-        choirTeam[memberIndex].image = existingImage;
+        case 14:
+          updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+
+          }; // Handle new image upload
+
+          if (!imageFile) {
+            _context32.next = 29;
+            break;
+          }
+
+          if (!member.image) {
+            _context32.next = 25;
+            break;
+          }
+
+          _context32.prev = 17;
+          _context32.next = 20;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(member.image));
+
+        case 20:
+          _context32.next = 25;
+          break;
+
+        case 22:
+          _context32.prev = 22;
+          _context32.t0 = _context32["catch"](17);
+          console.warn('Could not delete old image:', _context32.t0);
+
+        case 25:
+          // Upload new image to Cloudinary
+          imagePath = "teams/choir/".concat(Date.now(), "_").concat(imageFile.name);
+          _context32.next = 28;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
+
+        case 28:
+          updatedMember.image = _context32.sent;
+
+        case 29:
+          _context32.next = 31;
+          return regeneratorRuntime.awrap(updateChoirTeamMemberInFirebase(id, updatedMember));
+
+        case 31:
+          loadChoirTeamMembers();
+          clearChoirTeamForm();
+          showMessage('choirTeamMessage', 'Choir team member updated successfully!', 'success');
+          _context32.next = 40;
+          break;
+
+        case 36:
+          _context32.prev = 36;
+          _context32.t1 = _context32["catch"](6);
+          console.error('Error updating Choir team member:', _context32.t1);
+          showMessage('choirTeamMessage', 'Error updating member. Please try again.', 'error');
+
+        case 40:
+        case "end":
+          return _context32.stop();
       }
-
-      localStorage.setItem('choirTeam', JSON.stringify(choirTeam));
-      updateChoirPageTeam();
-      loadChoirTeamMembers();
-      clearChoirTeamForm();
-      showMessage('choirTeamMessage', 'Choir team member updated successfully!', 'success');
     }
-  }
+  }, null, null, [[6, 36], [17, 22]]);
 }
 
 function deleteChoirTeamMember(id) {
-  if (confirm('Are you sure you want to delete this choir team member?')) {
-    var choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-    choirTeam = choirTeam.filter(function (m) {
-      return m.id !== id;
-    });
-    localStorage.setItem('choirTeam', JSON.stringify(choirTeam));
-    updateChoirPageTeam();
-    loadChoirTeamMembers();
-    showMessage('choirTeamMessage', 'Choir team member deleted successfully!', 'success');
-  }
+  var choirTeam, member;
+  return regeneratorRuntime.async(function deleteChoirTeamMember$(_context33) {
+    while (1) {
+      switch (_context33.prev = _context33.next) {
+        case 0:
+          if (!confirm('Are you sure you want to delete this choir team member?')) {
+            _context33.next = 25;
+            break;
+          }
+
+          _context33.prev = 1;
+          _context33.next = 4;
+          return regeneratorRuntime.awrap(getAllChoirTeamMembersFromFirebase());
+
+        case 4:
+          choirTeam = _context33.sent;
+          member = choirTeam.find(function (m) {
+            return m.id === id;
+          });
+
+          if (!(member && member.image)) {
+            _context33.next = 15;
+            break;
+          }
+
+          _context33.prev = 7;
+          _context33.next = 10;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(member.image));
+
+        case 10:
+          _context33.next = 15;
+          break;
+
+        case 12:
+          _context33.prev = 12;
+          _context33.t0 = _context33["catch"](7);
+          console.warn('Could not delete image from Cloudinary:', _context33.t0);
+
+        case 15:
+          _context33.next = 17;
+          return regeneratorRuntime.awrap(deleteChoirTeamMemberFromFirebase(id));
+
+        case 17:
+          loadChoirTeamMembers();
+          showMessage('choirTeamMessage', 'Choir team member deleted successfully!', 'success');
+          _context33.next = 25;
+          break;
+
+        case 21:
+          _context33.prev = 21;
+          _context33.t1 = _context33["catch"](1);
+          console.error('Error deleting Choir team member:', _context33.t1);
+          showMessage('choirTeamMessage', 'Error deleting member. Please try again.', 'error');
+
+        case 25:
+        case "end":
+          return _context33.stop();
+      }
+    }
+  }, null, null, [[1, 21], [7, 12]]);
 }
 
 function clearChoirTeamForm() {
@@ -1582,10 +2356,6 @@ function clearChoirTeamForm() {
   $('#choirMemberImagePreview').empty();
   $('#choirTeamForm').removeData('editingId');
   $('#choirTeamForm').removeData('existingImage');
-}
-
-function updateChoirPageTeam() {
-  localStorage.setItem('choirPageTeamUpdated', Date.now().toString());
 } // Preview Multiple Images
 
 
@@ -1609,9 +2379,9 @@ function previewMultipleImages(files, previewId) {
 
 function saveEvent() {
   var name, date, description, photoFiles, videosText, newEvent, videoUrls, photoPromises;
-  return regeneratorRuntime.async(function saveEvent$(_context14) {
+  return regeneratorRuntime.async(function saveEvent$(_context34) {
     while (1) {
-      switch (_context14.prev = _context14.next) {
+      switch (_context34.prev = _context34.next) {
         case 0:
           name = $('#eventName').val();
           date = $('#eventDate').val();
@@ -1620,12 +2390,12 @@ function saveEvent() {
           videosText = $('#eventVideos').val();
 
           if (!(!name || !date || !description)) {
-            _context14.next = 8;
+            _context34.next = 8;
             break;
           }
 
           showMessage('eventsMessage', 'Please fill in all required fields', 'error');
-          return _context14.abrupt("return");
+          return _context34.abrupt("return");
 
         case 8:
           newEvent = {
@@ -1643,43 +2413,43 @@ function saveEvent() {
             newEvent.videos = videoUrls;
           }
 
-          _context14.prev = 10;
+          _context34.prev = 10;
 
           if (!(photoFiles && photoFiles.length > 0)) {
-            _context14.next = 16;
+            _context34.next = 16;
             break;
           }
 
           photoPromises = Array.from(photoFiles).map(function (file) {
             var imagePath = "events/".concat(Date.now(), "_").concat(file.name);
-            return uploadImageToFirebaseStorage(file, imagePath);
+            return uploadImageToFirebaseStorage(file, imagePath); // Actually uses Cloudinary
           });
-          _context14.next = 15;
+          _context34.next = 15;
           return regeneratorRuntime.awrap(Promise.all(photoPromises));
 
         case 15:
-          newEvent.photos = _context14.sent;
+          newEvent.photos = _context34.sent;
 
         case 16:
-          _context14.next = 18;
+          _context34.next = 18;
           return regeneratorRuntime.awrap(saveEventToFirebase(newEvent));
 
         case 18:
           loadEvents();
           clearEventsForm();
           showMessage('eventsMessage', 'Event saved successfully!', 'success');
-          _context14.next = 27;
+          _context34.next = 27;
           break;
 
         case 23:
-          _context14.prev = 23;
-          _context14.t0 = _context14["catch"](10);
-          console.error('Error saving event:', _context14.t0);
+          _context34.prev = 23;
+          _context34.t0 = _context34["catch"](10);
+          console.error('Error saving event:', _context34.t0);
           showMessage('eventsMessage', 'Error saving event. Please try again.', 'error');
 
         case 27:
         case "end":
-          return _context14.stop();
+          return _context34.stop();
       }
     }
   }, null, null, [[10, 23]]);
@@ -1688,26 +2458,26 @@ function saveEvent() {
 
 function loadEvents() {
   var listContainer, events;
-  return regeneratorRuntime.async(function loadEvents$(_context15) {
+  return regeneratorRuntime.async(function loadEvents$(_context35) {
     while (1) {
-      switch (_context15.prev = _context15.next) {
+      switch (_context35.prev = _context35.next) {
         case 0:
           listContainer = $('#eventsList');
           listContainer.empty();
-          _context15.prev = 2;
-          _context15.next = 5;
+          _context35.prev = 2;
+          _context35.next = 5;
           return regeneratorRuntime.awrap(getAllEventsFromFirebase());
 
         case 5:
-          events = _context15.sent;
+          events = _context35.sent;
 
           if (!(events.length === 0)) {
-            _context15.next = 9;
+            _context35.next = 9;
             break;
           }
 
           listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No events yet. Create your first event above.</p>');
-          return _context15.abrupt("return");
+          return _context35.abrupt("return");
 
         case 9:
           events.forEach(function (event) {
@@ -1722,18 +2492,18 @@ function loadEvents() {
             var eventHtml = "\n                <div class=\"admin-item-card\">\n                    <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                        ".concat(mainImage ? "<img src=\"".concat(mainImage, "\" alt=\"").concat(event.name, "\" style=\"width: 120px; height: 120px; object-fit: cover; border-radius: 4px;\">") : '<div style="width: 120px; height: 120px; background-color: #444444; border-radius: 4px;"></div>', "\n                        <div style=\"flex: 1;\">\n                            <h3>").concat(event.name, "</h3>\n                            <p>").concat(formattedDate, "</p>\n                            <p style=\"font-size: 1.2rem; color: #aaaaaa; margin-top: 0.5rem;\">").concat(event.description.substring(0, 100)).concat(event.description.length > 100 ? '...' : '', "</p>\n                            <p style=\"font-size: 1.2rem; color: #aaaaaa; margin-top: 0.5rem;\">\n                                ").concat(event.photos ? event.photos.length : 0, " Photo").concat(event.photos && event.photos.length !== 1 ? 's' : '', " | \n                                ").concat(event.videos ? event.videos.length : 0, " Video").concat(event.videos && event.videos.length !== 1 ? 's' : '', "\n                            </p>\n                        </div>\n                    </div>\n                    <div class=\"admin-item-actions\">\n                        <button class=\"admin-btn admin-btn-secondary\" onclick=\"editEvent('").concat(event.id, "')\">Edit</button>\n                        <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteEvent('").concat(event.id, "')\">Delete</button>\n                    </div>\n                </div>\n            ");
             listContainer.append(eventHtml);
           });
-          _context15.next = 16;
+          _context35.next = 16;
           break;
 
         case 12:
-          _context15.prev = 12;
-          _context15.t0 = _context15["catch"](2);
-          console.error('Error loading events:', _context15.t0);
+          _context35.prev = 12;
+          _context35.t0 = _context35["catch"](2);
+          console.error('Error loading events:', _context35.t0);
           listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading events. Please refresh the page.</p>');
 
         case 16:
         case "end":
-          return _context15.stop();
+          return _context35.stop();
       }
     }
   }, null, null, [[2, 12]]);
@@ -1742,16 +2512,16 @@ function loadEvents() {
 
 function editEvent(id) {
   var events, event, photosPreview;
-  return regeneratorRuntime.async(function editEvent$(_context16) {
+  return regeneratorRuntime.async(function editEvent$(_context36) {
     while (1) {
-      switch (_context16.prev = _context16.next) {
+      switch (_context36.prev = _context36.next) {
         case 0:
-          _context16.prev = 0;
-          _context16.next = 3;
+          _context36.prev = 0;
+          _context36.next = 3;
           return regeneratorRuntime.awrap(getAllEventsFromFirebase());
 
         case 3:
-          events = _context16.sent;
+          events = _context36.sent;
           event = events.find(function (e) {
             return e.id === id;
           });
@@ -1782,18 +2552,18 @@ function editEvent(id) {
             $('#eventsForm').data('existingPhotos', event.photos || []);
           }
 
-          _context16.next = 12;
+          _context36.next = 12;
           break;
 
         case 8:
-          _context16.prev = 8;
-          _context16.t0 = _context16["catch"](0);
-          console.error('Error loading event for editing:', _context16.t0);
+          _context36.prev = 8;
+          _context36.t0 = _context36["catch"](0);
+          console.error('Error loading event for editing:', _context36.t0);
           showMessage('eventsMessage', 'Error loading event. Please try again.', 'error');
 
         case 12:
         case "end":
-          return _context16.stop();
+          return _context36.stop();
       }
     }
   }, null, null, [[0, 8]]);
@@ -1802,9 +2572,9 @@ function editEvent(id) {
 
 function updateEvent(id) {
   var name, date, description, photoFiles, videosText, events, event, updatedEvent, videoUrls, existingPhotos, newPhotoPromises, newPhotos;
-  return regeneratorRuntime.async(function updateEvent$(_context17) {
+  return regeneratorRuntime.async(function updateEvent$(_context37) {
     while (1) {
-      switch (_context17.prev = _context17.next) {
+      switch (_context37.prev = _context37.next) {
         case 0:
           name = $('#eventName').val();
           date = $('#eventDate').val();
@@ -1813,31 +2583,31 @@ function updateEvent(id) {
           videosText = $('#eventVideos').val();
 
           if (!(!name || !date || !description)) {
-            _context17.next = 8;
+            _context37.next = 8;
             break;
           }
 
           showMessage('eventsMessage', 'Please fill in all required fields', 'error');
-          return _context17.abrupt("return");
+          return _context37.abrupt("return");
 
         case 8:
-          _context17.prev = 8;
-          _context17.next = 11;
+          _context37.prev = 8;
+          _context37.next = 11;
           return regeneratorRuntime.awrap(getAllEventsFromFirebase());
 
         case 11:
-          events = _context17.sent;
+          events = _context37.sent;
           event = events.find(function (e) {
             return e.id === id;
           });
 
           if (event) {
-            _context17.next = 16;
+            _context37.next = 16;
             break;
           }
 
           showMessage('eventsMessage', 'Event not found', 'error');
-          return _context17.abrupt("return");
+          return _context37.abrupt("return");
 
         case 16:
           updatedEvent = {
@@ -1858,7 +2628,7 @@ function updateEvent(id) {
 
 
           if (!(photoFiles && photoFiles.length > 0)) {
-            _context17.next = 25;
+            _context37.next = 25;
             break;
           }
 
@@ -1867,33 +2637,33 @@ function updateEvent(id) {
             var imagePath = "events/".concat(Date.now(), "_").concat(file.name);
             return uploadImageToFirebaseStorage(file, imagePath);
           });
-          _context17.next = 23;
+          _context37.next = 23;
           return regeneratorRuntime.awrap(Promise.all(newPhotoPromises));
 
         case 23:
-          newPhotos = _context17.sent;
+          newPhotos = _context37.sent;
           updatedEvent.photos = existingPhotos.concat(newPhotos);
 
         case 25:
-          _context17.next = 27;
+          _context37.next = 27;
           return regeneratorRuntime.awrap(updateEventInFirebase(id, updatedEvent));
 
         case 27:
           loadEvents();
           clearEventsForm();
           showMessage('eventsMessage', 'Event updated successfully!', 'success');
-          _context17.next = 36;
+          _context37.next = 36;
           break;
 
         case 32:
-          _context17.prev = 32;
-          _context17.t0 = _context17["catch"](8);
-          console.error('Error updating event:', _context17.t0);
+          _context37.prev = 32;
+          _context37.t0 = _context37["catch"](8);
+          console.error('Error updating event:', _context37.t0);
           showMessage('eventsMessage', 'Error updating event. Please try again.', 'error');
 
         case 36:
         case "end":
-          return _context17.stop();
+          return _context37.stop();
       }
     }
   }, null, null, [[8, 32]]);
@@ -1903,27 +2673,27 @@ function updateEvent(id) {
 function deleteEvent(id) {
   var events, event, _iteratorNormalCompletion, _didIteratorError, _iteratorError, _iterator, _step, photoUrl;
 
-  return regeneratorRuntime.async(function deleteEvent$(_context18) {
+  return regeneratorRuntime.async(function deleteEvent$(_context38) {
     while (1) {
-      switch (_context18.prev = _context18.next) {
+      switch (_context38.prev = _context38.next) {
         case 0:
           if (!confirm('Are you sure you want to delete this event?')) {
-            _context18.next = 49;
+            _context38.next = 49;
             break;
           }
 
-          _context18.prev = 1;
-          _context18.next = 4;
+          _context38.prev = 1;
+          _context38.next = 4;
           return regeneratorRuntime.awrap(getAllEventsFromFirebase());
 
         case 4:
-          events = _context18.sent;
+          events = _context38.sent;
           event = events.find(function (e) {
             return e.id === id;
           });
 
           if (!(event && event.photos && event.photos.length > 0)) {
-            _context18.next = 39;
+            _context38.next = 39;
             break;
           }
 
@@ -1931,87 +2701,87 @@ function deleteEvent(id) {
           _iteratorNormalCompletion = true;
           _didIteratorError = false;
           _iteratorError = undefined;
-          _context18.prev = 10;
+          _context38.prev = 10;
           _iterator = event.photos[Symbol.iterator]();
 
         case 12:
           if (_iteratorNormalCompletion = (_step = _iterator.next()).done) {
-            _context18.next = 25;
+            _context38.next = 25;
             break;
           }
 
           photoUrl = _step.value;
-          _context18.prev = 14;
-          _context18.next = 17;
+          _context38.prev = 14;
+          _context38.next = 17;
           return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(photoUrl));
 
         case 17:
-          _context18.next = 22;
+          _context38.next = 22;
           break;
 
         case 19:
-          _context18.prev = 19;
-          _context18.t0 = _context18["catch"](14);
-          console.warn('Could not delete photo from storage:', _context18.t0);
+          _context38.prev = 19;
+          _context38.t0 = _context38["catch"](14);
+          console.warn('Could not delete photo from storage:', _context38.t0);
 
         case 22:
           _iteratorNormalCompletion = true;
-          _context18.next = 12;
+          _context38.next = 12;
           break;
 
         case 25:
-          _context18.next = 31;
+          _context38.next = 31;
           break;
 
         case 27:
-          _context18.prev = 27;
-          _context18.t1 = _context18["catch"](10);
+          _context38.prev = 27;
+          _context38.t1 = _context38["catch"](10);
           _didIteratorError = true;
-          _iteratorError = _context18.t1;
+          _iteratorError = _context38.t1;
 
         case 31:
-          _context18.prev = 31;
-          _context18.prev = 32;
+          _context38.prev = 31;
+          _context38.prev = 32;
 
           if (!_iteratorNormalCompletion && _iterator["return"] != null) {
             _iterator["return"]();
           }
 
         case 34:
-          _context18.prev = 34;
+          _context38.prev = 34;
 
           if (!_didIteratorError) {
-            _context18.next = 37;
+            _context38.next = 37;
             break;
           }
 
           throw _iteratorError;
 
         case 37:
-          return _context18.finish(34);
+          return _context38.finish(34);
 
         case 38:
-          return _context18.finish(31);
+          return _context38.finish(31);
 
         case 39:
-          _context18.next = 41;
+          _context38.next = 41;
           return regeneratorRuntime.awrap(deleteEventFromFirebase(id));
 
         case 41:
           loadEvents();
           showMessage('eventsMessage', 'Event deleted successfully!', 'success');
-          _context18.next = 49;
+          _context38.next = 49;
           break;
 
         case 45:
-          _context18.prev = 45;
-          _context18.t2 = _context18["catch"](1);
-          console.error('Error deleting event:', _context18.t2);
+          _context38.prev = 45;
+          _context38.t2 = _context38["catch"](1);
+          console.error('Error deleting event:', _context38.t2);
           showMessage('eventsMessage', 'Error deleting event. Please try again.', 'error');
 
         case 49:
         case "end":
-          return _context18.stop();
+          return _context38.stop();
       }
     }
   }, null, null, [[1, 45], [10, 27, 31, 39], [14, 19], [32,, 34, 38]]);
@@ -2032,205 +2802,430 @@ function updateEventsPage() {
 
 
 function saveFatherProfile() {
-  var name = $('#fatherName').val();
-  var imageFile = $('#fatherImage')[0].files[0];
+  var name, imageFile, fatherProfile, imagePath, existing;
+  return regeneratorRuntime.async(function saveFatherProfile$(_context39) {
+    while (1) {
+      switch (_context39.prev = _context39.next) {
+        case 0:
+          name = $('#fatherName').val();
+          imageFile = $('#fatherImage')[0].files[0];
 
-  if (!name) {
-    showMessage('fatherProfileMessage', 'Please enter the Father\'s name', 'error');
-    return;
-  }
+          if (name) {
+            _context39.next = 5;
+            break;
+          }
 
-  var fatherProfile = {
-    name: name,
-    image: null
-  };
+          showMessage('fatherProfileMessage', 'Please enter the Father\'s name', 'error');
+          return _context39.abrupt("return");
 
-  if (imageFile) {
-    var reader = new FileReader();
+        case 5:
+          _context39.prev = 5;
+          fatherProfile = {
+            name: name,
+            image: null
+          };
 
-    reader.onload = function (e) {
-      fatherProfile.image = e.target.result;
-      localStorage.setItem('fatherProfile', JSON.stringify(fatherProfile));
-      updateAboutPageFatherProfile();
-      loadFatherProfile();
-      clearFatherProfileForm();
-      showMessage('fatherProfileMessage', 'Father profile saved successfully!', 'success');
-    };
+          if (!imageFile) {
+            _context39.next = 14;
+            break;
+          }
 
-    reader.readAsDataURL(imageFile);
-  } else {
-    // Check if there's an existing image
-    var existing = JSON.parse(localStorage.getItem('fatherProfile') || '{}');
+          // Upload image to Cloudinary
+          imagePath = "father/".concat(Date.now(), "_").concat(imageFile.name);
+          _context39.next = 11;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
 
-    if (existing.image) {
-      fatherProfile.image = existing.image;
-    } else {
-      showMessage('fatherProfileMessage', 'Please upload an image', 'error');
-      return;
+        case 11:
+          fatherProfile.image = _context39.sent;
+          _context39.next = 23;
+          break;
+
+        case 14:
+          _context39.next = 16;
+          return regeneratorRuntime.awrap(getFatherProfileFromFirebase());
+
+        case 16:
+          existing = _context39.sent;
+
+          if (!(existing && existing.image)) {
+            _context39.next = 21;
+            break;
+          }
+
+          fatherProfile.image = existing.image;
+          _context39.next = 23;
+          break;
+
+        case 21:
+          showMessage('fatherProfileMessage', 'Please upload an image', 'error');
+          return _context39.abrupt("return");
+
+        case 23:
+          _context39.next = 25;
+          return regeneratorRuntime.awrap(saveFatherProfileToFirebase(fatherProfile));
+
+        case 25:
+          loadFatherProfile();
+          clearFatherProfileForm();
+          showMessage('fatherProfileMessage', 'Father profile saved successfully!', 'success');
+          _context39.next = 34;
+          break;
+
+        case 30:
+          _context39.prev = 30;
+          _context39.t0 = _context39["catch"](5);
+          console.error('Error saving father profile:', _context39.t0);
+          showMessage('fatherProfileMessage', 'Error saving profile. Please try again.', 'error');
+
+        case 34:
+        case "end":
+          return _context39.stop();
+      }
     }
-
-    localStorage.setItem('fatherProfile', JSON.stringify(fatherProfile));
-    updateAboutPageFatherProfile();
-    loadFatherProfile();
-    clearFatherProfileForm();
-    showMessage('fatherProfileMessage', 'Father profile saved successfully!', 'success');
-  }
+  }, null, null, [[5, 30]]);
 }
 
 function loadFatherProfile() {
-  var fatherProfile = JSON.parse(localStorage.getItem('fatherProfile') || '{}');
-  var displayContainer = $('#fatherProfileDisplay');
-  var actionsContainer = $('#fatherProfileActions');
+  var displayContainer, actionsContainer, fatherProfile, displayHtml, actionsHtml;
+  return regeneratorRuntime.async(function loadFatherProfile$(_context40) {
+    while (1) {
+      switch (_context40.prev = _context40.next) {
+        case 0:
+          displayContainer = $('#fatherProfileDisplay');
+          actionsContainer = $('#fatherProfileActions');
+          _context40.prev = 2;
+          _context40.next = 5;
+          return regeneratorRuntime.awrap(getFatherProfileFromFirebase());
 
-  if (!fatherProfile.name && !fatherProfile.image) {
-    displayContainer.html('<p style="font-size: 1.4rem; color: #cccccc; text-align: center; padding: 2rem;">No Father profile set yet. Add the Father\'s information above.</p>');
-    actionsContainer.empty();
-    return;
-  }
+        case 5:
+          fatherProfile = _context40.sent;
 
-  var displayHtml = "\n        <div style=\"display: flex; align-items: center; gap: 3rem; flex-wrap: wrap;\">\n            ".concat(fatherProfile.image ? "\n            <div>\n                <img src=\"".concat(fatherProfile.image, "\" alt=\"").concat(fatherProfile.name || 'Father', "\" style=\"width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid #ffffff;\">\n            </div>\n            ") : '<div style="width: 200px; height: 200px; border-radius: 50%; background-color: #444444; border: 4px solid #ffffff;"></div>', "\n            <div style=\"flex: 1;\">\n                <h3 style=\"font-family: 'Montserrat', sans-serif; font-size: 2.4rem; font-weight: 700; color: #ffffff; margin-bottom: 1rem;\">\n                    ").concat(fatherProfile.name || 'Not Set', "\n                </h3>\n                <p style=\"font-size: 1.6rem; color: #cccccc;\">Father</p>\n            </div>\n        </div>\n    ");
-  displayContainer.html(displayHtml); // Add Edit and Delete buttons
+          if (!(!fatherProfile || !fatherProfile.name && !fatherProfile.image)) {
+            _context40.next = 10;
+            break;
+          }
 
-  var actionsHtml = "\n        <div style=\"display: flex; gap: 1rem; justify-content: center;\">\n            <button class=\"admin-btn admin-btn-secondary\" onclick=\"editFatherProfile()\">Edit</button>\n            <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteFatherProfile()\">Delete</button>\n        </div>\n    ";
-  actionsContainer.html(actionsHtml); // Load into form if exists
+          displayContainer.html('<p style="font-size: 1.4rem; color: #cccccc; text-align: center; padding: 2rem;">No Father profile set yet. Add the Father\'s information above.</p>');
+          actionsContainer.empty();
+          return _context40.abrupt("return");
 
-  if (fatherProfile.name) {
-    $('#fatherName').val(fatherProfile.name);
-  }
+        case 10:
+          displayHtml = "\n            <div style=\"display: flex; align-items: center; gap: 3rem; flex-wrap: wrap;\">\n                ".concat(fatherProfile.image ? "\n                <div>\n                    <img src=\"".concat(fatherProfile.image, "\" alt=\"").concat(fatherProfile.name || 'Father', "\" style=\"width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid #ffffff;\">\n                </div>\n                ") : '<div style="width: 200px; height: 200px; border-radius: 50%; background-color: #444444; border: 4px solid #ffffff;"></div>', "\n                <div style=\"flex: 1;\">\n                    <h3 style=\"font-family: 'Montserrat', sans-serif; font-size: 2.4rem; font-weight: 700; color: #ffffff; margin-bottom: 1rem;\">\n                        ").concat(fatherProfile.name || 'Not Set', "\n                    </h3>\n                    <p style=\"font-size: 1.6rem; color: #cccccc;\">Father</p>\n                </div>\n            </div>\n        ");
+          displayContainer.html(displayHtml); // Add Edit and Delete buttons
 
-  if (fatherProfile.image) {
-    $('#fatherImagePreview').html('<img src="' + fatherProfile.image + '" alt="Preview">');
-  }
+          actionsHtml = "\n            <div style=\"display: flex; gap: 1rem; justify-content: center;\">\n                <button class=\"admin-btn admin-btn-secondary\" onclick=\"editFatherProfile()\">Edit</button>\n                <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteFatherProfile()\">Delete</button>\n            </div>\n        ";
+          actionsContainer.html(actionsHtml); // Load into form if exists
+
+          if (fatherProfile.name) {
+            $('#fatherName').val(fatherProfile.name);
+          }
+
+          if (fatherProfile.image) {
+            $('#fatherImagePreview').html('<img src="' + fatherProfile.image + '" alt="Preview">');
+          }
+
+          _context40.next = 23;
+          break;
+
+        case 18:
+          _context40.prev = 18;
+          _context40.t0 = _context40["catch"](2);
+          console.error('Error loading father profile:', _context40.t0);
+          displayContainer.html('<p style="font-size: 1.4rem; color: #dd4043; text-align: center; padding: 2rem;">Error loading Father profile. Please refresh the page.</p>');
+          actionsContainer.empty();
+
+        case 23:
+        case "end":
+          return _context40.stop();
+      }
+    }
+  }, null, null, [[2, 18]]);
 }
 
 function editFatherProfile() {
-  var fatherProfile = JSON.parse(localStorage.getItem('fatherProfile') || '{}');
+  var fatherProfile;
+  return regeneratorRuntime.async(function editFatherProfile$(_context41) {
+    while (1) {
+      switch (_context41.prev = _context41.next) {
+        case 0:
+          _context41.prev = 0;
+          _context41.next = 3;
+          return regeneratorRuntime.awrap(getFatherProfileFromFirebase());
 
-  if (fatherProfile.name) {
-    $('#fatherName').val(fatherProfile.name);
-  }
+        case 3:
+          fatherProfile = _context41.sent;
 
-  if (fatherProfile.image) {
-    $('#fatherImagePreview').html('<img src="' + fatherProfile.image + '" alt="Preview">');
-  } // Scroll to form
+          if (fatherProfile) {
+            if (fatherProfile.name) {
+              $('#fatherName').val(fatherProfile.name);
+            }
+
+            if (fatherProfile.image) {
+              $('#fatherImagePreview').html('<img src="' + fatherProfile.image + '" alt="Preview">');
+            }
+          } // Scroll to form
 
 
-  $('html, body').animate({
-    scrollTop: $('#fatherProfileForm').offset().top - 100
-  }, 500);
+          $('html, body').animate({
+            scrollTop: $('#fatherProfileForm').offset().top - 100
+          }, 500);
+          _context41.next = 12;
+          break;
+
+        case 8:
+          _context41.prev = 8;
+          _context41.t0 = _context41["catch"](0);
+          console.error('Error loading father profile for editing:', _context41.t0);
+          showMessage('fatherProfileMessage', 'Error loading profile. Please try again.', 'error');
+
+        case 12:
+        case "end":
+          return _context41.stop();
+      }
+    }
+  }, null, null, [[0, 8]]);
 }
 
 function deleteFatherProfile() {
-  if (confirm('Are you sure you want to delete the Father profile? This will remove it from the About page.')) {
-    localStorage.removeItem('fatherProfile');
-    updateAboutPageFatherProfile();
-    loadFatherProfile();
-    clearFatherProfileForm();
-    showMessage('fatherProfileMessage', 'Father profile deleted successfully!', 'success');
-  }
+  var fatherProfile;
+  return regeneratorRuntime.async(function deleteFatherProfile$(_context42) {
+    while (1) {
+      switch (_context42.prev = _context42.next) {
+        case 0:
+          if (!confirm('Are you sure you want to delete the Father profile? This will remove it from the About page.')) {
+            _context42.next = 25;
+            break;
+          }
+
+          _context42.prev = 1;
+          _context42.next = 4;
+          return regeneratorRuntime.awrap(getFatherProfileFromFirebase());
+
+        case 4:
+          fatherProfile = _context42.sent;
+
+          if (!(fatherProfile && fatherProfile.image)) {
+            _context42.next = 14;
+            break;
+          }
+
+          _context42.prev = 6;
+          _context42.next = 9;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(fatherProfile.image));
+
+        case 9:
+          _context42.next = 14;
+          break;
+
+        case 11:
+          _context42.prev = 11;
+          _context42.t0 = _context42["catch"](6);
+          console.warn('Could not delete image from Cloudinary:', _context42.t0);
+
+        case 14:
+          _context42.next = 16;
+          return regeneratorRuntime.awrap(deleteFatherProfileFromFirebase());
+
+        case 16:
+          loadFatherProfile();
+          clearFatherProfileForm();
+          showMessage('fatherProfileMessage', 'Father profile deleted successfully!', 'success');
+          _context42.next = 25;
+          break;
+
+        case 21:
+          _context42.prev = 21;
+          _context42.t1 = _context42["catch"](1);
+          console.error('Error deleting father profile:', _context42.t1);
+          showMessage('fatherProfileMessage', 'Error deleting profile. Please try again.', 'error');
+
+        case 25:
+        case "end":
+          return _context42.stop();
+      }
+    }
+  }, null, null, [[1, 21], [6, 11]]);
 }
 
 function clearFatherProfileForm() {
   // Don't clear the form completely, just reset file input
-  $('#fatherImage').val(''); // Keep name and image preview if they exist
-
-  var fatherProfile = JSON.parse(localStorage.getItem('fatherProfile') || '{}');
-
-  if (!fatherProfile.name) {
-    $('#fatherName').val('');
-  }
-
-  if (!fatherProfile.image) {
-    $('#fatherImagePreview').empty();
-  }
-}
-
-function updateAboutPageFatherProfile() {
-  localStorage.setItem('aboutPageFatherProfileUpdated', Date.now().toString());
+  $('#fatherImage').val(''); // Note: Name and image preview will be loaded from Firebase when loadFatherProfile() is called
 } // Church Images Functions
 
 
 function saveChurchImage() {
-  var title = $('#imageTitle').val();
-  var imageFile = $('#churchImage')[0].files[0];
+  var title, imageFile, imagePath, imageUrl, newImage;
+  return regeneratorRuntime.async(function saveChurchImage$(_context43) {
+    while (1) {
+      switch (_context43.prev = _context43.next) {
+        case 0:
+          title = $('#imageTitle').val();
+          imageFile = $('#churchImage')[0].files[0];
 
-  if (!imageFile) {
-    showMessage('churchImagesMessage', 'Please select an image to upload', 'error');
-    return;
-  }
+          if (imageFile) {
+            _context43.next = 5;
+            break;
+          }
 
-  var reader = new FileReader();
+          showMessage('churchImagesMessage', 'Please select an image to upload', 'error');
+          return _context43.abrupt("return");
 
-  reader.onload = function (e) {
-    var churchImages = JSON.parse(localStorage.getItem('churchImages') || '[]');
-    var newImage = {
-      id: Date.now(),
-      url: e.target.result,
-      title: title || '',
-      date: new Date().toISOString()
-    };
-    churchImages.push(newImage);
-    localStorage.setItem('churchImages', JSON.stringify(churchImages));
-    updateAboutPageImages();
-    updateImagesPage();
-    loadChurchImages();
-    clearChurchImageForm();
-    showMessage('churchImagesMessage', 'Image uploaded successfully!', 'success');
-  };
+        case 5:
+          _context43.prev = 5;
+          // Upload image to Cloudinary
+          imagePath = "church/".concat(Date.now(), "_").concat(imageFile.name);
+          _context43.next = 9;
+          return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
 
-  reader.readAsDataURL(imageFile);
+        case 9:
+          imageUrl = _context43.sent;
+          // Actually uses Cloudinary
+          newImage = {
+            url: imageUrl,
+            title: title || '',
+            date: new Date().toISOString()
+          };
+          _context43.next = 13;
+          return regeneratorRuntime.awrap(saveChurchImageToFirebase(newImage));
+
+        case 13:
+          loadChurchImages();
+          clearChurchImageForm();
+          showMessage('churchImagesMessage', 'Image uploaded successfully!', 'success');
+          _context43.next = 22;
+          break;
+
+        case 18:
+          _context43.prev = 18;
+          _context43.t0 = _context43["catch"](5);
+          console.error('Error saving church image:', _context43.t0);
+          showMessage('churchImagesMessage', 'Error uploading image. Please try again.', 'error');
+
+        case 22:
+        case "end":
+          return _context43.stop();
+      }
+    }
+  }, null, null, [[5, 18]]);
 }
 
 function loadChurchImages() {
-  var churchImages = JSON.parse(localStorage.getItem('churchImages') || '[]');
-  var listContainer = $('#churchImagesList');
+  var listContainer, churchImages;
+  return regeneratorRuntime.async(function loadChurchImages$(_context44) {
+    while (1) {
+      switch (_context44.prev = _context44.next) {
+        case 0:
+          listContainer = $('#churchImagesList');
+          listContainer.empty();
+          _context44.prev = 2;
+          _context44.next = 5;
+          return regeneratorRuntime.awrap(getAllChurchImagesFromFirebase());
 
-  if (churchImages.length === 0) {
-    listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No images uploaded yet. Upload your first image above.</p>');
-    return;
-  }
+        case 5:
+          churchImages = _context44.sent;
 
-  listContainer.empty(); // Sort by date (newest first)
+          if (!(churchImages.length === 0)) {
+            _context44.next = 9;
+            break;
+          }
 
-  var sortedImages = churchImages.sort(function (a, b) {
-    return new Date(b.date) - new Date(a.date);
-  });
-  sortedImages.forEach(function (imageData) {
-    var imageHtml = "\n            <div class=\"admin-item-card\">\n                <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                    <img src=\"".concat(imageData.url, "\" alt=\"").concat(imageData.title || 'Church Image', "\" style=\"width: 150px; height: 150px; object-fit: cover; border-radius: 4px;\">\n                    <div style=\"flex: 1;\">\n                        <h3>").concat(imageData.title || 'Untitled Image', "</h3>\n                        <p>Uploaded: ").concat(new Date(imageData.date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }), "</p>\n                    </div>\n                </div>\n                <div class=\"admin-item-actions\">\n                    <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteChurchImage(").concat(imageData.id, ")\">Delete</button>\n                </div>\n            </div>\n        ");
-    listContainer.append(imageHtml);
-  });
+          listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No images uploaded yet. Upload your first image above.</p>');
+          return _context44.abrupt("return");
+
+        case 9:
+          churchImages.forEach(function (imageData) {
+            var uploadDate = imageData.createdAt ? new Date(imageData.createdAt.toDate ? imageData.createdAt.toDate() : imageData.createdAt) : new Date(imageData.date || Date.now());
+            var imageHtml = "\n                <div class=\"admin-item-card\">\n                    <div class=\"admin-item-info\" style=\"display: flex; align-items: center; gap: 2rem;\">\n                        <img src=\"".concat(imageData.url, "\" alt=\"").concat(imageData.title || 'Church Image', "\" style=\"width: 150px; height: 150px; object-fit: cover; border-radius: 4px;\">\n                        <div style=\"flex: 1;\">\n                            <h3>").concat(imageData.title || 'Untitled Image', "</h3>\n                            <p>Uploaded: ").concat(uploadDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }), "</p>\n                        </div>\n                    </div>\n                    <div class=\"admin-item-actions\">\n                        <button class=\"admin-btn admin-btn-danger\" onclick=\"deleteChurchImage('").concat(imageData.id, "')\">Delete</button>\n                    </div>\n                </div>\n            ");
+            listContainer.append(imageHtml);
+          });
+          _context44.next = 16;
+          break;
+
+        case 12:
+          _context44.prev = 12;
+          _context44.t0 = _context44["catch"](2);
+          console.error('Error loading church images:', _context44.t0);
+          listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading images. Please refresh the page.</p>');
+
+        case 16:
+        case "end":
+          return _context44.stop();
+      }
+    }
+  }, null, null, [[2, 12]]);
 }
 
 function deleteChurchImage(id) {
-  if (confirm('Are you sure you want to delete this image?')) {
-    var churchImages = JSON.parse(localStorage.getItem('churchImages') || '[]');
-    churchImages = churchImages.filter(function (img) {
-      return img.id !== id;
-    });
-    localStorage.setItem('churchImages', JSON.stringify(churchImages));
-    updateAboutPageImages();
-    updateImagesPage();
-    loadChurchImages();
-    showMessage('churchImagesMessage', 'Image deleted successfully!', 'success');
-  }
+  var churchImages, imageData;
+  return regeneratorRuntime.async(function deleteChurchImage$(_context45) {
+    while (1) {
+      switch (_context45.prev = _context45.next) {
+        case 0:
+          if (!confirm('Are you sure you want to delete this image?')) {
+            _context45.next = 25;
+            break;
+          }
+
+          _context45.prev = 1;
+          _context45.next = 4;
+          return regeneratorRuntime.awrap(getAllChurchImagesFromFirebase());
+
+        case 4:
+          churchImages = _context45.sent;
+          imageData = churchImages.find(function (img) {
+            return img.id === id;
+          });
+
+          if (!(imageData && imageData.url)) {
+            _context45.next = 15;
+            break;
+          }
+
+          _context45.prev = 7;
+          _context45.next = 10;
+          return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(imageData.url));
+
+        case 10:
+          _context45.next = 15;
+          break;
+
+        case 12:
+          _context45.prev = 12;
+          _context45.t0 = _context45["catch"](7);
+          console.warn('Could not delete image from Cloudinary:', _context45.t0);
+
+        case 15:
+          _context45.next = 17;
+          return regeneratorRuntime.awrap(deleteChurchImageFromFirebase(id));
+
+        case 17:
+          loadChurchImages();
+          showMessage('churchImagesMessage', 'Image deleted successfully!', 'success');
+          _context45.next = 25;
+          break;
+
+        case 21:
+          _context45.prev = 21;
+          _context45.t1 = _context45["catch"](1);
+          console.error('Error deleting church image:', _context45.t1);
+          showMessage('churchImagesMessage', 'Error deleting image. Please try again.', 'error');
+
+        case 25:
+        case "end":
+          return _context45.stop();
+      }
+    }
+  }, null, null, [[1, 21], [7, 12]]);
 }
 
 function clearChurchImageForm() {
   $('#imageTitle').val('');
   $('#churchImage').val('');
   $('#churchImagePreview').empty();
-}
-
-function updateAboutPageImages() {
-  localStorage.setItem('aboutPageImagesUpdated', Date.now().toString());
-}
-
-function updateImagesPage() {
-  localStorage.setItem('imagesPageUpdated', Date.now().toString());
 } // Logout
 
 
@@ -2265,40 +3260,40 @@ $(document).ready(function () {
 
 function updateNewsItem(id) {
   var title, text, imageFile, newsItems, item, updatedItem, imagePath;
-  return regeneratorRuntime.async(function updateNewsItem$(_context19) {
+  return regeneratorRuntime.async(function updateNewsItem$(_context46) {
     while (1) {
-      switch (_context19.prev = _context19.next) {
+      switch (_context46.prev = _context46.next) {
         case 0:
           title = $('#newsTitle').val();
           text = $('#newsText').val();
           imageFile = $('#newsImage')[0].files[0];
 
           if (!(!title || !text)) {
-            _context19.next = 6;
+            _context46.next = 6;
             break;
           }
 
           showMessage('newsMessage', 'Please fill in all fields', 'error');
-          return _context19.abrupt("return");
+          return _context46.abrupt("return");
 
         case 6:
-          _context19.prev = 6;
-          _context19.next = 9;
+          _context46.prev = 6;
+          _context46.next = 9;
           return regeneratorRuntime.awrap(getAllNewsItemsFromFirebase());
 
         case 9:
-          newsItems = _context19.sent;
+          newsItems = _context46.sent;
           item = newsItems.find(function (n) {
             return n.id === id;
           });
 
           if (item) {
-            _context19.next = 14;
+            _context46.next = 14;
             break;
           }
 
           showMessage('newsMessage', 'News item not found', 'error');
-          return _context19.abrupt("return");
+          return _context46.abrupt("return");
 
         case 14:
           updatedItem = {
@@ -2314,57 +3309,57 @@ function updateNewsItem(id) {
           }; // Handle new image upload
 
           if (!imageFile) {
-            _context19.next = 29;
+            _context46.next = 29;
             break;
           }
 
           if (!item.image) {
-            _context19.next = 25;
+            _context46.next = 25;
             break;
           }
 
-          _context19.prev = 17;
-          _context19.next = 20;
+          _context46.prev = 17;
+          _context46.next = 20;
           return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(item.image));
 
         case 20:
-          _context19.next = 25;
+          _context46.next = 25;
           break;
 
         case 22:
-          _context19.prev = 22;
-          _context19.t0 = _context19["catch"](17);
-          console.warn('Could not delete old image:', _context19.t0);
+          _context46.prev = 22;
+          _context46.t0 = _context46["catch"](17);
+          console.warn('Could not delete old image:', _context46.t0);
 
         case 25:
           // Upload new image
           imagePath = "news/".concat(Date.now(), "_").concat(imageFile.name);
-          _context19.next = 28;
+          _context46.next = 28;
           return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
 
         case 28:
-          updatedItem.image = _context19.sent;
+          updatedItem.image = _context46.sent;
 
         case 29:
-          _context19.next = 31;
+          _context46.next = 31;
           return regeneratorRuntime.awrap(updateNewsItemInFirebase(id, updatedItem));
 
         case 31:
           loadNewsItems();
           clearNewsForm();
           showMessage('newsMessage', 'News item updated successfully!', 'success');
-          _context19.next = 40;
+          _context46.next = 40;
           break;
 
         case 36:
-          _context19.prev = 36;
-          _context19.t1 = _context19["catch"](6);
-          console.error('Error updating news item:', _context19.t1);
+          _context46.prev = 36;
+          _context46.t1 = _context46["catch"](6);
+          console.error('Error updating news item:', _context46.t1);
           showMessage('newsMessage', 'Error updating news item. Please try again.', 'error');
 
         case 40:
         case "end":
-          return _context19.stop();
+          return _context46.stop();
       }
     }
   }, null, null, [[6, 36], [17, 22]]);
@@ -2373,40 +3368,40 @@ function updateNewsItem(id) {
 
 function updateActivityItem(id) {
   var title, text, imageFile, activitiesItems, item, updatedItem, imagePath;
-  return regeneratorRuntime.async(function updateActivityItem$(_context20) {
+  return regeneratorRuntime.async(function updateActivityItem$(_context47) {
     while (1) {
-      switch (_context20.prev = _context20.next) {
+      switch (_context47.prev = _context47.next) {
         case 0:
           title = $('#activityTitle').val();
           text = $('#activityText').val();
           imageFile = $('#activityImage')[0].files[0];
 
           if (!(!title || !text)) {
-            _context20.next = 6;
+            _context47.next = 6;
             break;
           }
 
           showMessage('activitiesMessage', 'Please fill in all fields', 'error');
-          return _context20.abrupt("return");
+          return _context47.abrupt("return");
 
         case 6:
-          _context20.prev = 6;
-          _context20.next = 9;
+          _context47.prev = 6;
+          _context47.next = 9;
           return regeneratorRuntime.awrap(getAllActivityItemsFromFirebase());
 
         case 9:
-          activitiesItems = _context20.sent;
+          activitiesItems = _context47.sent;
           item = activitiesItems.find(function (a) {
             return a.id === id;
           });
 
           if (item) {
-            _context20.next = 14;
+            _context47.next = 14;
             break;
           }
 
           showMessage('activitiesMessage', 'Activity not found', 'error');
-          return _context20.abrupt("return");
+          return _context47.abrupt("return");
 
         case 14:
           updatedItem = {
@@ -2422,57 +3417,57 @@ function updateActivityItem(id) {
           }; // Handle new image upload
 
           if (!imageFile) {
-            _context20.next = 29;
+            _context47.next = 29;
             break;
           }
 
           if (!item.image) {
-            _context20.next = 25;
+            _context47.next = 25;
             break;
           }
 
-          _context20.prev = 17;
-          _context20.next = 20;
+          _context47.prev = 17;
+          _context47.next = 20;
           return regeneratorRuntime.awrap(deleteImageFromFirebaseStorage(item.image));
 
         case 20:
-          _context20.next = 25;
+          _context47.next = 25;
           break;
 
         case 22:
-          _context20.prev = 22;
-          _context20.t0 = _context20["catch"](17);
-          console.warn('Could not delete old image:', _context20.t0);
+          _context47.prev = 22;
+          _context47.t0 = _context47["catch"](17);
+          console.warn('Could not delete old image:', _context47.t0);
 
         case 25:
           // Upload new image
           imagePath = "activities/".concat(Date.now(), "_").concat(imageFile.name);
-          _context20.next = 28;
+          _context47.next = 28;
           return regeneratorRuntime.awrap(uploadImageToFirebaseStorage(imageFile, imagePath));
 
         case 28:
-          updatedItem.image = _context20.sent;
+          updatedItem.image = _context47.sent;
 
         case 29:
-          _context20.next = 31;
+          _context47.next = 31;
           return regeneratorRuntime.awrap(updateActivityItemInFirebase(id, updatedItem));
 
         case 31:
           loadActivitiesItems();
           clearActivityForm();
           showMessage('activitiesMessage', 'Activity updated successfully!', 'success');
-          _context20.next = 40;
+          _context47.next = 40;
           break;
 
         case 36:
-          _context20.prev = 36;
-          _context20.t1 = _context20["catch"](6);
-          console.error('Error updating activity:', _context20.t1);
+          _context47.prev = 36;
+          _context47.t1 = _context47["catch"](6);
+          console.error('Error updating activity:', _context47.t1);
           showMessage('activitiesMessage', 'Error updating activity. Please try again.', 'error');
 
         case 40:
         case "end":
-          return _context20.stop();
+          return _context47.stop();
       }
     }
   }, null, null, [[6, 36], [17, 22]]);

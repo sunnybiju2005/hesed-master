@@ -219,62 +219,224 @@ function uploadBase64ImageToCloudinary(dataUrl) {
 }
 /**
  * Delete image from Cloudinary
- * Note: This requires server-side implementation or Cloudinary Admin API
- * For client-side, we'll just return success (actual deletion should be done server-side)
+ * Uses Cloudinary Admin API to delete images
  * @param {string} imageUrl - The Cloudinary image URL
  * @returns {Promise<void>}
  */
 
 
 function deleteImageFromCloudinary(imageUrl) {
-  var urlParts, pathAfterUpload, parts, publicIdWithExt, publicId;
+  var publicId, urlParts, pathAfterUpload, pathWithoutVersion, pathSegments, filenameIndex, i, filename, folders, lastSegment, _folders, timestamp, stringToSign, signature, destroyUrl, formData, response, responseText, result;
+
   return regeneratorRuntime.async(function deleteImageFromCloudinary$(_context3) {
     while (1) {
       switch (_context3.prev = _context3.next) {
         case 0:
           _context3.prev = 0;
-          // Extract public_id from Cloudinary URL
-          // Cloudinary URLs format: https://res.cloudinary.com/{cloud_name}/image/upload/{transformations}/{public_id}.{format}
-          urlParts = imageUrl.split('/upload/');
 
-          if (!(urlParts.length < 2)) {
-            _context3.next = 5;
+          if (!(!imageUrl || !imageUrl.includes('cloudinary.com'))) {
+            _context3.next = 4;
             break;
           }
 
-          console.warn('Invalid Cloudinary URL:', imageUrl);
+          console.warn('Not a Cloudinary URL, skipping deletion:', imageUrl);
           return _context3.abrupt("return");
 
-        case 5:
-          pathAfterUpload = urlParts[1]; // Remove any transformations and get the public_id
+        case 4:
+          // Extract public_id from Cloudinary URL
+          // Cloudinary URLs format: 
+          // https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{public_id}.{format}
+          // Example: https://res.cloudinary.com/dwzajmb65/image/upload/v1764671363/teams/qtcyowcgjlklaz5tny02.png
+          // public_id should be: teams/qtcyowcgjlklaz5tny02
+          publicId = '';
+          _context3.prev = 5;
+          urlParts = imageUrl.split('/upload/');
 
-          parts = pathAfterUpload.split('/');
-          publicIdWithExt = parts[parts.length - 1];
-          publicId = publicIdWithExt.split('.')[0]; // Note: Actual deletion requires server-side API call with API secret
-          // For now, we'll just log it. You can implement server-side deletion later
+          if (!(urlParts.length >= 2)) {
+            _context3.next = 21;
+            break;
+          }
 
-          console.log('Image deletion requested for:', publicId);
-          console.warn('Note: Image deletion from Cloudinary requires server-side implementation'); // If you have a server endpoint for deletion, call it here:
-          // await fetch('/api/delete-cloudinary-image', {
-          //     method: 'POST',
-          //     body: JSON.stringify({ publicId }),
-          //     headers: { 'Content-Type': 'application/json' }
-          // });
+          pathAfterUpload = urlParts[1]; // Remove version prefix (v1234567890/) if present
 
-          _context3.next = 16;
-          break;
+          pathWithoutVersion = pathAfterUpload.replace(/^v\d+\//, ''); // Remove any transformation parameters (w_100,h_100,c_fill, etc.)
+          // Transformations are usually before the filename
+
+          pathSegments = pathWithoutVersion.split('/'); // Find the last segment that looks like a filename (has extension)
+
+          filenameIndex = -1;
+          i = pathSegments.length - 1;
 
         case 13:
-          _context3.prev = 13;
-          _context3.t0 = _context3["catch"](0);
-          console.error('Error deleting image from Cloudinary:', _context3.t0); // Don't throw - deletion failure shouldn't break the app
+          if (!(i >= 0)) {
+            _context3.next = 20;
+            break;
+          }
 
-        case 16:
+          if (!pathSegments[i].includes('.')) {
+            _context3.next = 17;
+            break;
+          }
+
+          filenameIndex = i;
+          return _context3.abrupt("break", 20);
+
+        case 17:
+          i--;
+          _context3.next = 13;
+          break;
+
+        case 20:
+          if (filenameIndex >= 0) {
+            // Remove file extension from filename
+            filename = pathSegments[filenameIndex].replace(/\.[^/.]+$/, ''); // Reconstruct public_id with folder path
+
+            if (filenameIndex > 0) {
+              folders = pathSegments.slice(0, filenameIndex).join('/');
+              publicId = folders + '/' + filename;
+            } else {
+              publicId = filename;
+            }
+          } else {
+            // Fallback: remove extension from last segment
+            lastSegment = pathSegments[pathSegments.length - 1];
+            publicId = lastSegment.replace(/\.[^/.]+$/, '');
+
+            if (pathSegments.length > 1) {
+              _folders = pathSegments.slice(0, -1).join('/');
+              publicId = _folders + '/' + publicId;
+            }
+          }
+
+        case 21:
+          _context3.next = 27;
+          break;
+
+        case 23:
+          _context3.prev = 23;
+          _context3.t0 = _context3["catch"](5);
+          console.warn('Could not extract public_id from URL:', imageUrl, _context3.t0);
+          return _context3.abrupt("return");
+
+        case 27:
+          if (publicId) {
+            _context3.next = 30;
+            break;
+          }
+
+          console.warn('Could not extract public_id from URL:', imageUrl);
+          return _context3.abrupt("return");
+
+        case 30:
+          console.log('Extracted public_id:', publicId, 'from URL:', imageUrl);
+          console.log('Deleting image from Cloudinary:', {
+            url: imageUrl,
+            publicId: publicId
+          }); // Generate signature for Cloudinary Admin API
+          // We need: timestamp, signature (SHA1 of: public_id + timestamp + api_secret)
+
+          timestamp = Math.round(new Date().getTime() / 1000);
+          stringToSign = "public_id=".concat(publicId, "&timestamp=").concat(timestamp).concat(cloudinaryConfig.apiSecret); // Generate SHA1 hash (simple implementation)
+
+          _context3.next = 36;
+          return regeneratorRuntime.awrap(generateSHA1(stringToSign));
+
+        case 36:
+          signature = _context3.sent;
+          // Call Cloudinary destroy API
+          destroyUrl = "https://api.cloudinary.com/v1_1/".concat(cloudinaryConfig.cloudName, "/image/destroy");
+          formData = new FormData();
+          formData.append('public_id', publicId);
+          formData.append('timestamp', timestamp.toString());
+          formData.append('api_key', cloudinaryConfig.apiKey);
+          formData.append('signature', signature);
+          _context3.next = 45;
+          return regeneratorRuntime.awrap(fetch(destroyUrl, {
+            method: 'POST',
+            body: formData
+          }));
+
+        case 45:
+          response = _context3.sent;
+          _context3.next = 48;
+          return regeneratorRuntime.awrap(response.text());
+
+        case 48:
+          responseText = _context3.sent;
+
+          if (response.ok) {
+            _context3.next = 52;
+            break;
+          }
+
+          console.error('Cloudinary deletion failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            response: responseText
+          });
+          throw new Error("Cloudinary deletion failed: ".concat(response.status));
+
+        case 52:
+          result = JSON.parse(responseText);
+
+          if (result.result === 'ok') {
+            console.log('Image successfully deleted from Cloudinary:', publicId);
+          } else {
+            console.warn('Cloudinary deletion response:', result);
+          }
+
+          _context3.next = 60;
+          break;
+
+        case 56:
+          _context3.prev = 56;
+          _context3.t1 = _context3["catch"](0);
+          console.error('Error deleting image from Cloudinary:', _context3.t1); // Don't throw - deletion failure shouldn't break the app
+          // But log it so user knows
+
+          throw _context3.t1;
+
+        case 60:
         case "end":
           return _context3.stop();
       }
     }
-  }, null, null, [[0, 13]]);
+  }, null, null, [[0, 56], [5, 23]]);
+}
+/**
+ * Generate SHA1 hash (for Cloudinary signature)
+ * @param {string} message - String to hash
+ * @returns {Promise<string>} - SHA1 hash
+ */
+
+
+function generateSHA1(message) {
+  var msgBuffer, hashBuffer, hashArray, hashHex;
+  return regeneratorRuntime.async(function generateSHA1$(_context4) {
+    while (1) {
+      switch (_context4.prev = _context4.next) {
+        case 0:
+          // Convert string to ArrayBuffer
+          msgBuffer = new TextEncoder().encode(message); // Hash the message
+
+          _context4.next = 3;
+          return regeneratorRuntime.awrap(crypto.subtle.digest('SHA-1', msgBuffer));
+
+        case 3:
+          hashBuffer = _context4.sent;
+          // Convert ArrayBuffer to hex string
+          hashArray = Array.from(new Uint8Array(hashBuffer));
+          hashHex = hashArray.map(function (b) {
+            return b.toString(16).padStart(2, '0');
+          }).join('');
+          return _context4.abrupt("return", hashHex);
+
+        case 7:
+        case "end":
+          return _context4.stop();
+      }
+    }
+  });
 }
 /**
  * Get optimized image URL with transformations

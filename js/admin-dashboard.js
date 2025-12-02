@@ -240,10 +240,10 @@ async function saveActivityItem() {
     };
 
     try {
-        // Handle image upload to Firebase Storage
+        // Handle image upload to Cloudinary (not Firebase Storage)
         if (imageFile) {
             const imagePath = `activities/${Date.now()}_${imageFile.name}`;
-            const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath);
+            const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath); // Actually uses Cloudinary
             newItem.image = imageUrl;
         }
 
@@ -500,9 +500,9 @@ async function saveServiceTeamMember() {
     }
 
     try {
-        // Upload image to Firebase Storage
+        // Upload image to Cloudinary (not Firebase Storage)
         const imagePath = `teams/service/${Date.now()}_${imageFile.name}`;
-        const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath); // Actually uses Cloudinary
         
         const newMember = {
             name: name,
@@ -678,7 +678,7 @@ function updateAboutPageServiceTeam() {
 }
 
 // CLC Team Functions
-function saveCLCTeamMember() {
+async function saveCLCTeamMember() {
     const name = $('#clcMemberName').val();
     const position = $('#clcMemberPosition').val();
     const imageFile = $('#clcMemberImage')[0].files[0];
@@ -688,72 +688,93 @@ function saveCLCTeamMember() {
         return;
     }
 
-    let clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-    const newMember = { id: Date.now(), name: name, position: position, image: null };
-
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            newMember.image = e.target.result;
-            clcTeam.push(newMember);
-            localStorage.setItem('clcTeam', JSON.stringify(clcTeam));
-            updateCLCPageTeam();
-            loadCLCTeamMembers();
-            clearCLCTeamForm();
-            showMessage('clcTeamMessage', 'CLC team member saved successfully!', 'success');
-        };
-        reader.readAsDataURL(imageFile);
-    } else {
+    if (!imageFile) {
         showMessage('clcTeamMessage', 'Please upload a profile image', 'error');
+        return;
+    }
+
+    try {
+        // Upload image to Cloudinary
+        const imagePath = `teams/clc/${Date.now()}_${imageFile.name}`;
+        const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath); // Actually uses Cloudinary
+        
+        const newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+        };
+
+        await saveCLCTeamMemberToFirebase(newMember);
+        loadCLCTeamMembers();
+        clearCLCTeamForm();
+        showMessage('clcTeamMessage', 'CLC team member saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving CLC team member:', error);
+        showMessage('clcTeamMessage', 'Error saving member. Please try again.', 'error');
     }
 }
 
-function loadCLCTeamMembers() {
-    const clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
+async function loadCLCTeamMembers() {
     const listContainer = $('#clcTeamList');
     listContainer.empty();
     
-    if (clcTeam.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No CLC team members yet. Add your first member above.</p>');
-        return;
-    }
+    try {
+        const clcTeam = await getAllCLCTeamMembersFromFirebase();
+        
+        if (clcTeam.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No CLC team members yet. Add your first member above.</p>');
+            return;
+        }
 
-    clcTeam.forEach(function(member) {
-        const memberHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
-                    ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>'}
-                    <div>
-                        <h3>${member.name}</h3>
-                        <p>${member.position}</p>
+        clcTeam.forEach(function(member) {
+            const memberHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
+                        ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>'}
+                        <div>
+                            <h3>${member.name}</h3>
+                            <p>${member.position}</p>
+                        </div>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-secondary" onclick="editCLCTeamMember('${member.id}')">Edit</button>
+                        <button class="admin-btn admin-btn-danger" onclick="deleteCLCTeamMember('${member.id}')">Delete</button>
                     </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-secondary" onclick="editCLCTeamMember(${member.id})">Edit</button>
-                    <button class="admin-btn admin-btn-danger" onclick="deleteCLCTeamMember(${member.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(memberHtml);
-    });
-}
-
-function editCLCTeamMember(id) {
-    const clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-    const member = clcTeam.find(m => m.id === id);
-    
-    if (member) {
-        $('#clcMemberName').val(member.name);
-        $('#clcMemberPosition').val(member.position);
-        if (member.image) {
-            $('#clcMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
-        }
-        $('.admin-sidebar-item[data-section="clc-team"]').click();
-        $('#clcTeamForm').data('editingId', id);
+            `;
+            listContainer.append(memberHtml);
+        });
+    } catch (error) {
+        console.error('Error loading CLC team members:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading CLC team. Please refresh the page.</p>');
     }
 }
 
-function updateCLCTeamMember(id) {
+async function editCLCTeamMember(id) {
+    try {
+        const clcTeam = await getAllCLCTeamMembersFromFirebase();
+        const member = clcTeam.find(m => m.id === id);
+        
+        if (member) {
+            $('#clcMemberName').val(member.name);
+            $('#clcMemberPosition').val(member.position);
+            if (member.image) {
+                $('#clcMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            }
+            $('.admin-sidebar-item[data-section="service-teams"]').click();
+            setTimeout(() => {
+                $('.admin-subsection-tab[data-subsection="clc-team"]').click();
+            }, 100);
+            $('#clcTeamForm').data('editingId', id);
+            $('#clcTeamForm').data('existingImage', member.image);
+        }
+    } catch (error) {
+        console.error('Error loading CLC team member for editing:', error);
+        showMessage('clcTeamMessage', 'Error loading member. Please try again.', 'error');
+    }
+}
+
+async function updateCLCTeamMember(id) {
     const name = $('#clcMemberName').val();
     const position = $('#clcMemberPosition').val();
     const imageFile = $('#clcMemberImage')[0].files[0];
@@ -763,42 +784,69 @@ function updateCLCTeamMember(id) {
         return;
     }
 
-    let clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-    const memberIndex = clcTeam.findIndex(m => m.id === id);
-    
-    if (memberIndex !== -1) {
-        clcTeam[memberIndex].name = name;
-        clcTeam[memberIndex].position = position;
-
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                clcTeam[memberIndex].image = e.target.result;
-                localStorage.setItem('clcTeam', JSON.stringify(clcTeam));
-                updateCLCPageTeam();
-                loadCLCTeamMembers();
-                clearCLCTeamForm();
-                showMessage('clcTeamMessage', 'CLC team member updated successfully!', 'success');
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            localStorage.setItem('clcTeam', JSON.stringify(clcTeam));
-            updateCLCPageTeam();
-            loadCLCTeamMembers();
-            clearCLCTeamForm();
-            showMessage('clcTeamMessage', 'CLC team member updated successfully!', 'success');
+    try {
+        const clcTeam = await getAllCLCTeamMembersFromFirebase();
+        const member = clcTeam.find(m => m.id === id);
+        
+        if (!member) {
+            showMessage('clcTeamMessage', 'Member not found', 'error');
+            return;
         }
+
+        const updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+        };
+
+        // Handle new image upload
+        if (imageFile) {
+            // Delete old image if it exists
+            if (member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete old image:', error);
+                }
+            }
+            
+            // Upload new image to Cloudinary
+            const imagePath = `teams/clc/${Date.now()}_${imageFile.name}`;
+            updatedMember.image = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        }
+
+        await updateCLCTeamMemberInFirebase(id, updatedMember);
+        loadCLCTeamMembers();
+        clearCLCTeamForm();
+        showMessage('clcTeamMessage', 'CLC team member updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating CLC team member:', error);
+        showMessage('clcTeamMessage', 'Error updating member. Please try again.', 'error');
     }
 }
 
-function deleteCLCTeamMember(id) {
+async function deleteCLCTeamMember(id) {
     if (confirm('Are you sure you want to delete this CLC team member?')) {
-        let clcTeam = JSON.parse(localStorage.getItem('clcTeam') || '[]');
-        clcTeam = clcTeam.filter(m => m.id !== id);
-        localStorage.setItem('clcTeam', JSON.stringify(clcTeam));
-        updateCLCPageTeam();
-        loadCLCTeamMembers();
-        showMessage('clcTeamMessage', 'CLC team member deleted successfully!', 'success');
+        try {
+            // Get the member first to delete their image from Cloudinary
+            const clcTeam = await getAllCLCTeamMembersFromFirebase();
+            const member = clcTeam.find(m => m.id === id);
+            
+            if (member && member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete image from Cloudinary:', error);
+                }
+            }
+            
+            await deleteCLCTeamMemberFromFirebase(id);
+            loadCLCTeamMembers();
+            showMessage('clcTeamMessage', 'CLC team member deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting CLC team member:', error);
+            showMessage('clcTeamMessage', 'Error deleting member. Please try again.', 'error');
+        }
     }
 }
 
@@ -806,14 +854,11 @@ function clearCLCTeamForm() {
     $('#clcTeamForm')[0].reset();
     $('#clcMemberImagePreview').empty();
     $('#clcTeamForm').removeData('editingId');
-}
-
-function updateCLCPageTeam() {
-    localStorage.setItem('clcPageTeamUpdated', Date.now().toString());
+    $('#clcTeamForm').removeData('existingImage');
 }
 
 // KCYM Team Functions
-function saveKCYMTeamMember() {
+async function saveKCYMTeamMember() {
     const name = $('#kcymMemberName').val();
     const position = $('#kcymMemberPosition').val();
     const imageFile = $('#kcymMemberImage')[0].files[0];
@@ -823,72 +868,93 @@ function saveKCYMTeamMember() {
         return;
     }
 
-    let kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-    const newMember = { id: Date.now(), name: name, position: position, image: null };
-
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            newMember.image = e.target.result;
-            kcymTeam.push(newMember);
-            localStorage.setItem('kcymTeam', JSON.stringify(kcymTeam));
-            updateKCYMPageTeam();
-            loadKCYMTeamMembers();
-            clearKCYMTeamForm();
-            showMessage('kcymTeamMessage', 'KCYM team member saved successfully!', 'success');
-        };
-        reader.readAsDataURL(imageFile);
-    } else {
+    if (!imageFile) {
         showMessage('kcymTeamMessage', 'Please upload a profile image', 'error');
+        return;
+    }
+
+    try {
+        // Upload image to Cloudinary
+        const imagePath = `teams/kcym/${Date.now()}_${imageFile.name}`;
+        const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath); // Actually uses Cloudinary
+        
+        const newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+        };
+
+        await saveKCYMTeamMemberToFirebase(newMember);
+        loadKCYMTeamMembers();
+        clearKCYMTeamForm();
+        showMessage('kcymTeamMessage', 'KCYM team member saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving KCYM team member:', error);
+        showMessage('kcymTeamMessage', 'Error saving member. Please try again.', 'error');
     }
 }
 
-function loadKCYMTeamMembers() {
-    const kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
+async function loadKCYMTeamMembers() {
     const listContainer = $('#kcymTeamList');
     listContainer.empty();
     
-    if (kcymTeam.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No KCYM team members yet. Add your first member above.</p>');
-        return;
-    }
+    try {
+        const kcymTeam = await getAllKCYMTeamMembersFromFirebase();
+        
+        if (kcymTeam.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No KCYM team members yet. Add your first member above.</p>');
+            return;
+        }
 
-    kcymTeam.forEach(function(member) {
-        const memberHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
-                    ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>'}
-                    <div>
-                        <h3>${member.name}</h3>
-                        <p>${member.position}</p>
+        kcymTeam.forEach(function(member) {
+            const memberHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
+                        ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>'}
+                        <div>
+                            <h3>${member.name}</h3>
+                            <p>${member.position}</p>
+                        </div>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-secondary" onclick="editKCYMTeamMember('${member.id}')">Edit</button>
+                        <button class="admin-btn admin-btn-danger" onclick="deleteKCYMTeamMember('${member.id}')">Delete</button>
                     </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-secondary" onclick="editKCYMTeamMember(${member.id})">Edit</button>
-                    <button class="admin-btn admin-btn-danger" onclick="deleteKCYMTeamMember(${member.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(memberHtml);
-    });
-}
-
-function editKCYMTeamMember(id) {
-    const kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-    const member = kcymTeam.find(m => m.id === id);
-    
-    if (member) {
-        $('#kcymMemberName').val(member.name);
-        $('#kcymMemberPosition').val(member.position);
-        if (member.image) {
-            $('#kcymMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
-        }
-        $('.admin-sidebar-item[data-section="kcym-team"]').click();
-        $('#kcymTeamForm').data('editingId', id);
+            `;
+            listContainer.append(memberHtml);
+        });
+    } catch (error) {
+        console.error('Error loading KCYM team members:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading KCYM team. Please refresh the page.</p>');
     }
 }
 
-function updateKCYMTeamMember(id) {
+async function editKCYMTeamMember(id) {
+    try {
+        const kcymTeam = await getAllKCYMTeamMembersFromFirebase();
+        const member = kcymTeam.find(m => m.id === id);
+        
+        if (member) {
+            $('#kcymMemberName').val(member.name);
+            $('#kcymMemberPosition').val(member.position);
+            if (member.image) {
+                $('#kcymMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            }
+            $('.admin-sidebar-item[data-section="service-teams"]').click();
+            setTimeout(() => {
+                $('.admin-subsection-tab[data-subsection="kcym-team"]').click();
+            }, 100);
+            $('#kcymTeamForm').data('editingId', id);
+            $('#kcymTeamForm').data('existingImage', member.image);
+        }
+    } catch (error) {
+        console.error('Error loading KCYM team member for editing:', error);
+        showMessage('kcymTeamMessage', 'Error loading member. Please try again.', 'error');
+    }
+}
+
+async function updateKCYMTeamMember(id) {
     const name = $('#kcymMemberName').val();
     const position = $('#kcymMemberPosition').val();
     const imageFile = $('#kcymMemberImage')[0].files[0];
@@ -898,42 +964,69 @@ function updateKCYMTeamMember(id) {
         return;
     }
 
-    let kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-    const memberIndex = kcymTeam.findIndex(m => m.id === id);
-    
-    if (memberIndex !== -1) {
-        kcymTeam[memberIndex].name = name;
-        kcymTeam[memberIndex].position = position;
-
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                kcymTeam[memberIndex].image = e.target.result;
-                localStorage.setItem('kcymTeam', JSON.stringify(kcymTeam));
-                updateKCYMPageTeam();
-                loadKCYMTeamMembers();
-                clearKCYMTeamForm();
-                showMessage('kcymTeamMessage', 'KCYM team member updated successfully!', 'success');
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            localStorage.setItem('kcymTeam', JSON.stringify(kcymTeam));
-            updateKCYMPageTeam();
-            loadKCYMTeamMembers();
-            clearKCYMTeamForm();
-            showMessage('kcymTeamMessage', 'KCYM team member updated successfully!', 'success');
+    try {
+        const kcymTeam = await getAllKCYMTeamMembersFromFirebase();
+        const member = kcymTeam.find(m => m.id === id);
+        
+        if (!member) {
+            showMessage('kcymTeamMessage', 'Member not found', 'error');
+            return;
         }
+
+        const updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+        };
+
+        // Handle new image upload
+        if (imageFile) {
+            // Delete old image if it exists
+            if (member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete old image:', error);
+                }
+            }
+            
+            // Upload new image to Cloudinary
+            const imagePath = `teams/kcym/${Date.now()}_${imageFile.name}`;
+            updatedMember.image = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        }
+
+        await updateKCYMTeamMemberInFirebase(id, updatedMember);
+        loadKCYMTeamMembers();
+        clearKCYMTeamForm();
+        showMessage('kcymTeamMessage', 'KCYM team member updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating KCYM team member:', error);
+        showMessage('kcymTeamMessage', 'Error updating member. Please try again.', 'error');
     }
 }
 
-function deleteKCYMTeamMember(id) {
+async function deleteKCYMTeamMember(id) {
     if (confirm('Are you sure you want to delete this KCYM team member?')) {
-        let kcymTeam = JSON.parse(localStorage.getItem('kcymTeam') || '[]');
-        kcymTeam = kcymTeam.filter(m => m.id !== id);
-        localStorage.setItem('kcymTeam', JSON.stringify(kcymTeam));
-        updateKCYMPageTeam();
-        loadKCYMTeamMembers();
-        showMessage('kcymTeamMessage', 'KCYM team member deleted successfully!', 'success');
+        try {
+            // Get the member first to delete their image from Cloudinary
+            const kcymTeam = await getAllKCYMTeamMembersFromFirebase();
+            const member = kcymTeam.find(m => m.id === id);
+            
+            if (member && member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete image from Cloudinary:', error);
+                }
+            }
+            
+            await deleteKCYMTeamMemberFromFirebase(id);
+            loadKCYMTeamMembers();
+            showMessage('kcymTeamMessage', 'KCYM team member deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting KCYM team member:', error);
+            showMessage('kcymTeamMessage', 'Error deleting member. Please try again.', 'error');
+        }
     }
 }
 
@@ -941,14 +1034,11 @@ function clearKCYMTeamForm() {
     $('#kcymTeamForm')[0].reset();
     $('#kcymMemberImagePreview').empty();
     $('#kcymTeamForm').removeData('editingId');
-}
-
-function updateKCYMPageTeam() {
-    localStorage.setItem('kcymPageTeamUpdated', Date.now().toString());
+    $('#kcymTeamForm').removeData('existingImage');
 }
 
 // Mathrusangam Team Functions
-function saveMathrusangamTeamMember() {
+async function saveMathrusangamTeamMember() {
     const name = $('#mathrusangamMemberName').val();
     const position = $('#mathrusangamMemberPosition').val();
     const imageFile = $('#mathrusangamMemberImage')[0].files[0];
@@ -958,72 +1048,93 @@ function saveMathrusangamTeamMember() {
         return;
     }
 
-    let mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-    const newMember = { id: Date.now(), name: name, position: position, image: null };
-
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            newMember.image = e.target.result;
-            mathrusangamTeam.push(newMember);
-            localStorage.setItem('mathrusangamTeam', JSON.stringify(mathrusangamTeam));
-            updateMathrusangamPageTeam();
-            loadMathrusangamTeamMembers();
-            clearMathrusangamTeamForm();
-            showMessage('mathrusangamTeamMessage', 'Mathrusangam team member saved successfully!', 'success');
-        };
-        reader.readAsDataURL(imageFile);
-    } else {
+    if (!imageFile) {
         showMessage('mathrusangamTeamMessage', 'Please upload a profile image', 'error');
+        return;
+    }
+
+    try {
+        // Upload image to Cloudinary
+        const imagePath = `teams/mathrusangam/${Date.now()}_${imageFile.name}`;
+        const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath); // Actually uses Cloudinary
+        
+        const newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+        };
+
+        await saveMathrusangamTeamMemberToFirebase(newMember);
+        loadMathrusangamTeamMembers();
+        clearMathrusangamTeamForm();
+        showMessage('mathrusangamTeamMessage', 'Mathrusangam team member saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving Mathrusangam team member:', error);
+        showMessage('mathrusangamTeamMessage', 'Error saving member. Please try again.', 'error');
     }
 }
 
-function loadMathrusangamTeamMembers() {
-    const mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
+async function loadMathrusangamTeamMembers() {
     const listContainer = $('#mathrusangamTeamList');
     listContainer.empty();
     
-    if (mathrusangamTeam.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No Mathrusangam team members yet. Add your first member above.</p>');
-        return;
-    }
+    try {
+        const mathrusangamTeam = await getAllMathrusangamTeamMembersFromFirebase();
+        
+        if (mathrusangamTeam.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No Mathrusangam team members yet. Add your first member above.</p>');
+            return;
+        }
 
-    mathrusangamTeam.forEach(function(member) {
-        const memberHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
-                    ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>'}
-                    <div>
-                        <h3>${member.name}</h3>
-                        <p>${member.position}</p>
+        mathrusangamTeam.forEach(function(member) {
+            const memberHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
+                        ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>'}
+                        <div>
+                            <h3>${member.name}</h3>
+                            <p>${member.position}</p>
+                        </div>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-secondary" onclick="editMathrusangamTeamMember('${member.id}')">Edit</button>
+                        <button class="admin-btn admin-btn-danger" onclick="deleteMathrusangamTeamMember('${member.id}')">Delete</button>
                     </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-secondary" onclick="editMathrusangamTeamMember(${member.id})">Edit</button>
-                    <button class="admin-btn admin-btn-danger" onclick="deleteMathrusangamTeamMember(${member.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(memberHtml);
-    });
-}
-
-function editMathrusangamTeamMember(id) {
-    const mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-    const member = mathrusangamTeam.find(m => m.id === id);
-    
-    if (member) {
-        $('#mathrusangamMemberName').val(member.name);
-        $('#mathrusangamMemberPosition').val(member.position);
-        if (member.image) {
-            $('#mathrusangamMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
-        }
-        $('.admin-sidebar-item[data-section="mathrusangam-team"]').click();
-        $('#mathrusangamTeamForm').data('editingId', id);
+            `;
+            listContainer.append(memberHtml);
+        });
+    } catch (error) {
+        console.error('Error loading Mathrusangam team members:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading Mathrusangam team. Please refresh the page.</p>');
     }
 }
 
-function updateMathrusangamTeamMember(id) {
+async function editMathrusangamTeamMember(id) {
+    try {
+        const mathrusangamTeam = await getAllMathrusangamTeamMembersFromFirebase();
+        const member = mathrusangamTeam.find(m => m.id === id);
+        
+        if (member) {
+            $('#mathrusangamMemberName').val(member.name);
+            $('#mathrusangamMemberPosition').val(member.position);
+            if (member.image) {
+                $('#mathrusangamMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            }
+            $('.admin-sidebar-item[data-section="service-teams"]').click();
+            setTimeout(() => {
+                $('.admin-subsection-tab[data-subsection="mathrusangam-team"]').click();
+            }, 100);
+            $('#mathrusangamTeamForm').data('editingId', id);
+            $('#mathrusangamTeamForm').data('existingImage', member.image);
+        }
+    } catch (error) {
+        console.error('Error loading Mathrusangam team member for editing:', error);
+        showMessage('mathrusangamTeamMessage', 'Error loading member. Please try again.', 'error');
+    }
+}
+
+async function updateMathrusangamTeamMember(id) {
     const name = $('#mathrusangamMemberName').val();
     const position = $('#mathrusangamMemberPosition').val();
     const imageFile = $('#mathrusangamMemberImage')[0].files[0];
@@ -1033,42 +1144,69 @@ function updateMathrusangamTeamMember(id) {
         return;
     }
 
-    let mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-    const memberIndex = mathrusangamTeam.findIndex(m => m.id === id);
-    
-    if (memberIndex !== -1) {
-        mathrusangamTeam[memberIndex].name = name;
-        mathrusangamTeam[memberIndex].position = position;
-
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                mathrusangamTeam[memberIndex].image = e.target.result;
-                localStorage.setItem('mathrusangamTeam', JSON.stringify(mathrusangamTeam));
-                updateMathrusangamPageTeam();
-                loadMathrusangamTeamMembers();
-                clearMathrusangamTeamForm();
-                showMessage('mathrusangamTeamMessage', 'Mathrusangam team member updated successfully!', 'success');
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            localStorage.setItem('mathrusangamTeam', JSON.stringify(mathrusangamTeam));
-            updateMathrusangamPageTeam();
-            loadMathrusangamTeamMembers();
-            clearMathrusangamTeamForm();
-            showMessage('mathrusangamTeamMessage', 'Mathrusangam team member updated successfully!', 'success');
+    try {
+        const mathrusangamTeam = await getAllMathrusangamTeamMembersFromFirebase();
+        const member = mathrusangamTeam.find(m => m.id === id);
+        
+        if (!member) {
+            showMessage('mathrusangamTeamMessage', 'Member not found', 'error');
+            return;
         }
+
+        const updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+        };
+
+        // Handle new image upload
+        if (imageFile) {
+            // Delete old image if it exists
+            if (member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete old image:', error);
+                }
+            }
+            
+            // Upload new image to Cloudinary
+            const imagePath = `teams/mathrusangam/${Date.now()}_${imageFile.name}`;
+            updatedMember.image = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        }
+
+        await updateMathrusangamTeamMemberInFirebase(id, updatedMember);
+        loadMathrusangamTeamMembers();
+        clearMathrusangamTeamForm();
+        showMessage('mathrusangamTeamMessage', 'Mathrusangam team member updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating Mathrusangam team member:', error);
+        showMessage('mathrusangamTeamMessage', 'Error updating member. Please try again.', 'error');
     }
 }
 
-function deleteMathrusangamTeamMember(id) {
+async function deleteMathrusangamTeamMember(id) {
     if (confirm('Are you sure you want to delete this Mathrusangam team member?')) {
-        let mathrusangamTeam = JSON.parse(localStorage.getItem('mathrusangamTeam') || '[]');
-        mathrusangamTeam = mathrusangamTeam.filter(m => m.id !== id);
-        localStorage.setItem('mathrusangamTeam', JSON.stringify(mathrusangamTeam));
-        updateMathrusangamPageTeam();
-        loadMathrusangamTeamMembers();
-        showMessage('mathrusangamTeamMessage', 'Mathrusangam team member deleted successfully!', 'success');
+        try {
+            // Get the member first to delete their image from Cloudinary
+            const mathrusangamTeam = await getAllMathrusangamTeamMembersFromFirebase();
+            const member = mathrusangamTeam.find(m => m.id === id);
+            
+            if (member && member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete image from Cloudinary:', error);
+                }
+            }
+            
+            await deleteMathrusangamTeamMemberFromFirebase(id);
+            loadMathrusangamTeamMembers();
+            showMessage('mathrusangamTeamMessage', 'Mathrusangam team member deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting Mathrusangam team member:', error);
+            showMessage('mathrusangamTeamMessage', 'Error deleting member. Please try again.', 'error');
+        }
     }
 }
 
@@ -1076,14 +1214,11 @@ function clearMathrusangamTeamForm() {
     $('#mathrusangamTeamForm')[0].reset();
     $('#mathrusangamMemberImagePreview').empty();
     $('#mathrusangamTeamForm').removeData('editingId');
-}
-
-function updateMathrusangamPageTeam() {
-    localStorage.setItem('mathrusangamPageTeamUpdated', Date.now().toString());
+    $('#mathrusangamTeamForm').removeData('existingImage');
 }
 
 // Choir Team Functions
-function saveChoirTeamMember() {
+async function saveChoirTeamMember() {
     const name = $('#choirMemberName').val();
     const position = $('#choirMemberPosition').val();
     const imageFile = $('#choirMemberImage')[0].files[0];
@@ -1093,86 +1228,97 @@ function saveChoirTeamMember() {
         return;
     }
 
-    let choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-    const newMember = {
-        id: Date.now(),
-        name: name,
-        position: position,
-        image: null
-    };
-
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            newMember.image = e.target.result;
-            choirTeam.push(newMember);
-            localStorage.setItem('choirTeam', JSON.stringify(choirTeam));
-            updateChoirPageTeam();
-            loadChoirTeamMembers();
-            clearChoirTeamForm();
-            showMessage('choirTeamMessage', 'Choir team member saved successfully!', 'success');
-        };
-        reader.readAsDataURL(imageFile);
-    } else {
+    if (!imageFile) {
         showMessage('choirTeamMessage', 'Please upload a profile image', 'error');
+        return;
+    }
+
+    try {
+        // Upload image to Cloudinary
+        const imagePath = `teams/choir/${Date.now()}_${imageFile.name}`;
+        const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath); // Actually uses Cloudinary
+        
+        const newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+        };
+
+        await saveChoirTeamMemberToFirebase(newMember);
+        loadChoirTeamMembers();
+        clearChoirTeamForm();
+        showMessage('choirTeamMessage', 'Choir team member saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving Choir team member:', error);
+        showMessage('choirTeamMessage', 'Error saving member. Please try again.', 'error');
     }
 }
 
-function loadChoirTeamMembers() {
-    const choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
+async function loadChoirTeamMembers() {
     const listContainer = $('#choirTeamList');
-    
-    if (choirTeam.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No choir team members yet. Add your first member above.</p>');
-        return;
-    }
-    
     listContainer.empty();
     
-    choirTeam.forEach(function(member) {
-        const memberHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
-                    ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 100px; height: 100px; border-radius: 50%; background-color: #444444;"></div>'}
-                    <div style="flex: 1;">
-                        <h3>${member.name}</h3>
-                        <p>${member.position}</p>
-                    </div>
-                </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-secondary" onclick="editChoirTeamMember(${member.id})">Edit</button>
-                    <button class="admin-btn admin-btn-danger" onclick="deleteChoirTeamMember(${member.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(memberHtml);
-    });
-}
-
-function editChoirTeamMember(id) {
-    const choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-    const member = choirTeam.find(m => m.id === id);
-    
-    if (member) {
-        $('#choirMemberName').val(member.name);
-        $('#choirMemberPosition').val(member.position);
-        if (member.image) {
-            $('#choirMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+    try {
+        const choirTeam = await getAllChoirTeamMembersFromFirebase();
+        
+        if (choirTeam.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No choir team members yet. Add your first member above.</p>');
+            return;
         }
         
-        // Switch to choir team section
-        $('.admin-sidebar-item[data-section="service-teams"]').click();
-        setTimeout(function() {
-            $('.admin-subsection-tab[data-subsection="choir-team"]').click();
-        }, 100);
-        
-        // Store editing ID
-        $('#choirTeamForm').data('editingId', id);
-        $('#choirTeamForm').data('existingImage', member.image);
+        choirTeam.forEach(function(member) {
+            const memberHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
+                        ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 100px; height: 100px; border-radius: 50%; background-color: #444444;"></div>'}
+                        <div style="flex: 1;">
+                            <h3>${member.name}</h3>
+                            <p>${member.position}</p>
+                        </div>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-secondary" onclick="editChoirTeamMember('${member.id}')">Edit</button>
+                        <button class="admin-btn admin-btn-danger" onclick="deleteChoirTeamMember('${member.id}')">Delete</button>
+                    </div>
+                </div>
+            `;
+            listContainer.append(memberHtml);
+        });
+    } catch (error) {
+        console.error('Error loading Choir team members:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading Choir team. Please refresh the page.</p>');
     }
 }
 
-function updateChoirTeamMember(id) {
+async function editChoirTeamMember(id) {
+    try {
+        const choirTeam = await getAllChoirTeamMembersFromFirebase();
+        const member = choirTeam.find(m => m.id === id);
+        
+        if (member) {
+            $('#choirMemberName').val(member.name);
+            $('#choirMemberPosition').val(member.position);
+            if (member.image) {
+                $('#choirMemberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            }
+            
+            // Switch to choir team section
+            $('.admin-sidebar-item[data-section="service-teams"]').click();
+            setTimeout(function() {
+                $('.admin-subsection-tab[data-subsection="choir-team"]').click();
+            }, 100);
+            
+            // Store editing ID
+            $('#choirTeamForm').data('editingId', id);
+            $('#choirTeamForm').data('existingImage', member.image);
+        }
+    } catch (error) {
+        console.error('Error loading Choir team member for editing:', error);
+        showMessage('choirTeamMessage', 'Error loading member. Please try again.', 'error');
+    }
+}
+
+async function updateChoirTeamMember(id) {
     const name = $('#choirMemberName').val();
     const position = $('#choirMemberPosition').val();
     const imageFile = $('#choirMemberImage')[0].files[0];
@@ -1182,47 +1328,69 @@ function updateChoirTeamMember(id) {
         return;
     }
 
-    let choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-    const memberIndex = choirTeam.findIndex(m => m.id === id);
-    
-    if (memberIndex !== -1) {
-        choirTeam[memberIndex].name = name;
-        choirTeam[memberIndex].position = position;
+    try {
+        const choirTeam = await getAllChoirTeamMembersFromFirebase();
+        const member = choirTeam.find(m => m.id === id);
         
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                choirTeam[memberIndex].image = e.target.result;
-                localStorage.setItem('choirTeam', JSON.stringify(choirTeam));
-                updateChoirPageTeam();
-                loadChoirTeamMembers();
-                clearChoirTeamForm();
-                showMessage('choirTeamMessage', 'Choir team member updated successfully!', 'success');
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            // Keep existing image
-            const existingImage = $('#choirTeamForm').data('existingImage');
-            if (existingImage) {
-                choirTeam[memberIndex].image = existingImage;
-            }
-            localStorage.setItem('choirTeam', JSON.stringify(choirTeam));
-            updateChoirPageTeam();
-            loadChoirTeamMembers();
-            clearChoirTeamForm();
-            showMessage('choirTeamMessage', 'Choir team member updated successfully!', 'success');
+        if (!member) {
+            showMessage('choirTeamMessage', 'Member not found', 'error');
+            return;
         }
+
+        const updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+        };
+
+        // Handle new image upload
+        if (imageFile) {
+            // Delete old image if it exists
+            if (member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete old image:', error);
+                }
+            }
+            
+            // Upload new image to Cloudinary
+            const imagePath = `teams/choir/${Date.now()}_${imageFile.name}`;
+            updatedMember.image = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        }
+
+        await updateChoirTeamMemberInFirebase(id, updatedMember);
+        loadChoirTeamMembers();
+        clearChoirTeamForm();
+        showMessage('choirTeamMessage', 'Choir team member updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating Choir team member:', error);
+        showMessage('choirTeamMessage', 'Error updating member. Please try again.', 'error');
     }
 }
 
-function deleteChoirTeamMember(id) {
+async function deleteChoirTeamMember(id) {
     if (confirm('Are you sure you want to delete this choir team member?')) {
-        let choirTeam = JSON.parse(localStorage.getItem('choirTeam') || '[]');
-        choirTeam = choirTeam.filter(m => m.id !== id);
-        localStorage.setItem('choirTeam', JSON.stringify(choirTeam));
-        updateChoirPageTeam();
-        loadChoirTeamMembers();
-        showMessage('choirTeamMessage', 'Choir team member deleted successfully!', 'success');
+        try {
+            // Get the member first to delete their image from Cloudinary
+            const choirTeam = await getAllChoirTeamMembersFromFirebase();
+            const member = choirTeam.find(m => m.id === id);
+            
+            if (member && member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete image from Cloudinary:', error);
+                }
+            }
+            
+            await deleteChoirTeamMemberFromFirebase(id);
+            loadChoirTeamMembers();
+            showMessage('choirTeamMessage', 'Choir team member deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting Choir team member:', error);
+            showMessage('choirTeamMessage', 'Error deleting member. Please try again.', 'error');
+        }
     }
 }
 
@@ -1233,10 +1401,6 @@ function clearChoirTeamForm() {
     $('#choirMemberImagePreview').empty();
     $('#choirTeamForm').removeData('editingId');
     $('#choirTeamForm').removeData('existingImage');
-}
-
-function updateChoirPageTeam() {
-    localStorage.setItem('choirPageTeamUpdated', Date.now().toString());
 }
 
 // Preview Multiple Images
@@ -1285,11 +1449,11 @@ async function saveEvent() {
     }
 
     try {
-        // Process photos - upload to Firebase Storage
+        // Process photos - upload to Cloudinary (not Firebase Storage)
         if (photoFiles && photoFiles.length > 0) {
             const photoPromises = Array.from(photoFiles).map(function(file) {
                 const imagePath = `events/${Date.now()}_${file.name}`;
-                return uploadImageToFirebaseStorage(file, imagePath);
+                return uploadImageToFirebaseStorage(file, imagePath); // Actually uses Cloudinary
             });
 
             newEvent.photos = await Promise.all(photoPromises);
@@ -1499,7 +1663,7 @@ function updateEventsPage() {
 }
 
 // Father Profile Functions
-function saveFatherProfile() {
+async function saveFatherProfile() {
     const name = $('#fatherName').val();
     const imageFile = $('#fatherImage')[0].files[0];
 
@@ -1508,130 +1672,146 @@ function saveFatherProfile() {
         return;
     }
 
-    const fatherProfile = {
-        name: name,
-        image: null
-    };
-
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            fatherProfile.image = e.target.result;
-            localStorage.setItem('fatherProfile', JSON.stringify(fatherProfile));
-            updateAboutPageFatherProfile();
-            loadFatherProfile();
-            clearFatherProfileForm();
-            showMessage('fatherProfileMessage', 'Father profile saved successfully!', 'success');
+    try {
+        const fatherProfile = {
+            name: name,
+            image: null
         };
-        reader.readAsDataURL(imageFile);
-    } else {
-        // Check if there's an existing image
-        const existing = JSON.parse(localStorage.getItem('fatherProfile') || '{}');
-        if (existing.image) {
-            fatherProfile.image = existing.image;
+
+        if (imageFile) {
+            // Upload image to Cloudinary
+            const imagePath = `father/${Date.now()}_${imageFile.name}`;
+            fatherProfile.image = await uploadImageToFirebaseStorage(imageFile, imagePath); // Actually uses Cloudinary
         } else {
-            showMessage('fatherProfileMessage', 'Please upload an image', 'error');
-            return;
+            // Check if there's an existing image in Firebase
+            const existing = await getFatherProfileFromFirebase();
+            if (existing && existing.image) {
+                fatherProfile.image = existing.image;
+            } else {
+                showMessage('fatherProfileMessage', 'Please upload an image', 'error');
+                return;
+            }
         }
-        localStorage.setItem('fatherProfile', JSON.stringify(fatherProfile));
-        updateAboutPageFatherProfile();
+
+        await saveFatherProfileToFirebase(fatherProfile);
         loadFatherProfile();
         clearFatherProfileForm();
         showMessage('fatherProfileMessage', 'Father profile saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving father profile:', error);
+        showMessage('fatherProfileMessage', 'Error saving profile. Please try again.', 'error');
     }
 }
 
-function loadFatherProfile() {
-    const fatherProfile = JSON.parse(localStorage.getItem('fatherProfile') || '{}');
+async function loadFatherProfile() {
     const displayContainer = $('#fatherProfileDisplay');
     const actionsContainer = $('#fatherProfileActions');
     
-    if (!fatherProfile.name && !fatherProfile.image) {
-        displayContainer.html('<p style="font-size: 1.4rem; color: #cccccc; text-align: center; padding: 2rem;">No Father profile set yet. Add the Father\'s information above.</p>');
+    try {
+        const fatherProfile = await getFatherProfileFromFirebase();
+        
+        if (!fatherProfile || (!fatherProfile.name && !fatherProfile.image)) {
+            displayContainer.html('<p style="font-size: 1.4rem; color: #cccccc; text-align: center; padding: 2rem;">No Father profile set yet. Add the Father\'s information above.</p>');
+            actionsContainer.empty();
+            return;
+        }
+        
+        const displayHtml = `
+            <div style="display: flex; align-items: center; gap: 3rem; flex-wrap: wrap;">
+                ${fatherProfile.image ? `
+                <div>
+                    <img src="${fatherProfile.image}" alt="${fatherProfile.name || 'Father'}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid #ffffff;">
+                </div>
+                ` : '<div style="width: 200px; height: 200px; border-radius: 50%; background-color: #444444; border: 4px solid #ffffff;"></div>'}
+                <div style="flex: 1;">
+                    <h3 style="font-family: \'Montserrat\', sans-serif; font-size: 2.4rem; font-weight: 700; color: #ffffff; margin-bottom: 1rem;">
+                        ${fatherProfile.name || 'Not Set'}
+                    </h3>
+                    <p style="font-size: 1.6rem; color: #cccccc;">Father</p>
+                </div>
+            </div>
+        `;
+        displayContainer.html(displayHtml);
+        
+        // Add Edit and Delete buttons
+        const actionsHtml = `
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="admin-btn admin-btn-secondary" onclick="editFatherProfile()">Edit</button>
+                <button class="admin-btn admin-btn-danger" onclick="deleteFatherProfile()">Delete</button>
+            </div>
+        `;
+        actionsContainer.html(actionsHtml);
+        
+        // Load into form if exists
+        if (fatherProfile.name) {
+            $('#fatherName').val(fatherProfile.name);
+        }
+        if (fatherProfile.image) {
+            $('#fatherImagePreview').html('<img src="' + fatherProfile.image + '" alt="Preview">');
+        }
+    } catch (error) {
+        console.error('Error loading father profile:', error);
+        displayContainer.html('<p style="font-size: 1.4rem; color: #dd4043; text-align: center; padding: 2rem;">Error loading Father profile. Please refresh the page.</p>');
         actionsContainer.empty();
-        return;
-    }
-    
-    const displayHtml = `
-        <div style="display: flex; align-items: center; gap: 3rem; flex-wrap: wrap;">
-            ${fatherProfile.image ? `
-            <div>
-                <img src="${fatherProfile.image}" alt="${fatherProfile.name || 'Father'}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid #ffffff;">
-            </div>
-            ` : '<div style="width: 200px; height: 200px; border-radius: 50%; background-color: #444444; border: 4px solid #ffffff;"></div>'}
-            <div style="flex: 1;">
-                <h3 style="font-family: \'Montserrat\', sans-serif; font-size: 2.4rem; font-weight: 700; color: #ffffff; margin-bottom: 1rem;">
-                    ${fatherProfile.name || 'Not Set'}
-                </h3>
-                <p style="font-size: 1.6rem; color: #cccccc;">Father</p>
-            </div>
-        </div>
-    `;
-    displayContainer.html(displayHtml);
-    
-    // Add Edit and Delete buttons
-    const actionsHtml = `
-        <div style="display: flex; gap: 1rem; justify-content: center;">
-            <button class="admin-btn admin-btn-secondary" onclick="editFatherProfile()">Edit</button>
-            <button class="admin-btn admin-btn-danger" onclick="deleteFatherProfile()">Delete</button>
-        </div>
-    `;
-    actionsContainer.html(actionsHtml);
-    
-    // Load into form if exists
-    if (fatherProfile.name) {
-        $('#fatherName').val(fatherProfile.name);
-    }
-    if (fatherProfile.image) {
-        $('#fatherImagePreview').html('<img src="' + fatherProfile.image + '" alt="Preview">');
     }
 }
 
-function editFatherProfile() {
-    const fatherProfile = JSON.parse(localStorage.getItem('fatherProfile') || '{}');
-    
-    if (fatherProfile.name) {
-        $('#fatherName').val(fatherProfile.name);
+async function editFatherProfile() {
+    try {
+        const fatherProfile = await getFatherProfileFromFirebase();
+        
+        if (fatherProfile) {
+            if (fatherProfile.name) {
+                $('#fatherName').val(fatherProfile.name);
+            }
+            if (fatherProfile.image) {
+                $('#fatherImagePreview').html('<img src="' + fatherProfile.image + '" alt="Preview">');
+            }
+        }
+        
+        // Scroll to form
+        $('html, body').animate({
+            scrollTop: $('#fatherProfileForm').offset().top - 100
+        }, 500);
+    } catch (error) {
+        console.error('Error loading father profile for editing:', error);
+        showMessage('fatherProfileMessage', 'Error loading profile. Please try again.', 'error');
     }
-    if (fatherProfile.image) {
-        $('#fatherImagePreview').html('<img src="' + fatherProfile.image + '" alt="Preview">');
-    }
-    
-    // Scroll to form
-    $('html, body').animate({
-        scrollTop: $('#fatherProfileForm').offset().top - 100
-    }, 500);
 }
 
-function deleteFatherProfile() {
+async function deleteFatherProfile() {
     if (confirm('Are you sure you want to delete the Father profile? This will remove it from the About page.')) {
-        localStorage.removeItem('fatherProfile');
-        updateAboutPageFatherProfile();
-        loadFatherProfile();
-        clearFatherProfileForm();
-        showMessage('fatherProfileMessage', 'Father profile deleted successfully!', 'success');
+        try {
+            // Get the profile first to delete the image from Cloudinary
+            const fatherProfile = await getFatherProfileFromFirebase();
+            
+            if (fatherProfile && fatherProfile.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(fatherProfile.image);
+                } catch (error) {
+                    console.warn('Could not delete image from Cloudinary:', error);
+                }
+            }
+            
+            await deleteFatherProfileFromFirebase();
+            loadFatherProfile();
+            clearFatherProfileForm();
+            showMessage('fatherProfileMessage', 'Father profile deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting father profile:', error);
+            showMessage('fatherProfileMessage', 'Error deleting profile. Please try again.', 'error');
+        }
     }
 }
 
 function clearFatherProfileForm() {
     // Don't clear the form completely, just reset file input
     $('#fatherImage').val('');
-    // Keep name and image preview if they exist
-    const fatherProfile = JSON.parse(localStorage.getItem('fatherProfile') || '{}');
-    if (!fatherProfile.name) {
-        $('#fatherName').val('');
-    }
-    if (!fatherProfile.image) {
-        $('#fatherImagePreview').empty();
-    }
-}
-
-function updateAboutPageFatherProfile() {
-    localStorage.setItem('aboutPageFatherProfileUpdated', Date.now().toString());
+    // Note: Name and image preview will be loaded from Firebase when loadFatherProfile() is called
 }
 
 // Church Images Functions
-function saveChurchImage() {
+async function saveChurchImage() {
     const title = $('#imageTitle').val();
     const imageFile = $('#churchImage')[0].files[0];
 
@@ -1640,75 +1820,89 @@ function saveChurchImage() {
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const churchImages = JSON.parse(localStorage.getItem('churchImages') || '[]');
+    try {
+        // Upload image to Cloudinary
+        const imagePath = `church/${Date.now()}_${imageFile.name}`;
+        const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath); // Actually uses Cloudinary
+        
         const newImage = {
-            id: Date.now(),
-            url: e.target.result,
+            url: imageUrl,
             title: title || '',
             date: new Date().toISOString()
         };
         
-        churchImages.push(newImage);
-        localStorage.setItem('churchImages', JSON.stringify(churchImages));
-        updateAboutPageImages();
-        updateImagesPage();
+        await saveChurchImageToFirebase(newImage);
         loadChurchImages();
         clearChurchImageForm();
         showMessage('churchImagesMessage', 'Image uploaded successfully!', 'success');
-    };
-    reader.readAsDataURL(imageFile);
+    } catch (error) {
+        console.error('Error saving church image:', error);
+        showMessage('churchImagesMessage', 'Error uploading image. Please try again.', 'error');
+    }
 }
 
-function loadChurchImages() {
-    const churchImages = JSON.parse(localStorage.getItem('churchImages') || '[]');
+async function loadChurchImages() {
     const listContainer = $('#churchImagesList');
-    
-    if (churchImages.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No images uploaded yet. Upload your first image above.</p>');
-        return;
-    }
-    
     listContainer.empty();
     
-    // Sort by date (newest first)
-    const sortedImages = churchImages.sort(function(a, b) {
-        return new Date(b.date) - new Date(a.date);
-    });
-    
-    sortedImages.forEach(function(imageData) {
-        const imageHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
-                    <img src="${imageData.url}" alt="${imageData.title || 'Church Image'}" style="width: 150px; height: 150px; object-fit: cover; border-radius: 4px;">
-                    <div style="flex: 1;">
-                        <h3>${imageData.title || 'Untitled Image'}</h3>
-                        <p>Uploaded: ${new Date(imageData.date).toLocaleDateString('en-US', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                        })}</p>
+    try {
+        const churchImages = await getAllChurchImagesFromFirebase();
+        
+        if (churchImages.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No images uploaded yet. Upload your first image above.</p>');
+            return;
+        }
+        
+        churchImages.forEach(function(imageData) {
+            const uploadDate = imageData.createdAt ? new Date(imageData.createdAt.toDate ? imageData.createdAt.toDate() : imageData.createdAt) : new Date(imageData.date || Date.now());
+            const imageHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
+                        <img src="${imageData.url}" alt="${imageData.title || 'Church Image'}" style="width: 150px; height: 150px; object-fit: cover; border-radius: 4px;">
+                        <div style="flex: 1;">
+                            <h3>${imageData.title || 'Untitled Image'}</h3>
+                            <p>Uploaded: ${uploadDate.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                            })}</p>
+                        </div>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-danger" onclick="deleteChurchImage('${imageData.id}')">Delete</button>
                     </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-danger" onclick="deleteChurchImage(${imageData.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(imageHtml);
-    });
+            `;
+            listContainer.append(imageHtml);
+        });
+    } catch (error) {
+        console.error('Error loading church images:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading images. Please refresh the page.</p>');
+    }
 }
 
-function deleteChurchImage(id) {
+async function deleteChurchImage(id) {
     if (confirm('Are you sure you want to delete this image?')) {
-        let churchImages = JSON.parse(localStorage.getItem('churchImages') || '[]');
-        churchImages = churchImages.filter(img => img.id !== id);
-        localStorage.setItem('churchImages', JSON.stringify(churchImages));
-        updateAboutPageImages();
-        updateImagesPage();
-        loadChurchImages();
-        showMessage('churchImagesMessage', 'Image deleted successfully!', 'success');
+        try {
+            // Get the image first to delete it from Cloudinary
+            const churchImages = await getAllChurchImagesFromFirebase();
+            const imageData = churchImages.find(img => img.id === id);
+            
+            if (imageData && imageData.url) {
+                try {
+                    await deleteImageFromFirebaseStorage(imageData.url);
+                } catch (error) {
+                    console.warn('Could not delete image from Cloudinary:', error);
+                }
+            }
+            
+            await deleteChurchImageFromFirebase(id);
+            loadChurchImages();
+            showMessage('churchImagesMessage', 'Image deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting church image:', error);
+            showMessage('churchImagesMessage', 'Error deleting image. Please try again.', 'error');
+        }
     }
 }
 
@@ -1716,14 +1910,6 @@ function clearChurchImageForm() {
     $('#imageTitle').val('');
     $('#churchImage').val('');
     $('#churchImagePreview').empty();
-}
-
-function updateAboutPageImages() {
-    localStorage.setItem('aboutPageImagesUpdated', Date.now().toString());
-}
-
-function updateImagesPage() {
-    localStorage.setItem('imagesPageUpdated', Date.now().toString());
 }
 
 // Logout
