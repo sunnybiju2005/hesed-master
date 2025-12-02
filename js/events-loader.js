@@ -14,42 +14,51 @@ $(document).ready(function() {
         filterEvents($(this).val());
     });
     
-    // Listen for storage changes
+    // Listen for Firestore changes
     if (window.location.pathname.includes('events.html')) {
-        $(window).on('storage', function(e) {
-            if (e.originalEvent.key === 'events' || e.originalEvent.key === 'eventsPageUpdated') {
+        if (typeof db !== 'undefined') {
+            db.collection('events').onSnapshot(function(snapshot) {
                 currentPage = 1;
                 loadEventsToPage();
-            }
-        });
+            });
+        }
     }
 });
 
-function loadEventsToPage() {
-    allEvents = JSON.parse(localStorage.getItem('events') || '[]');
+async function loadEventsToPage() {
     const container = $('#eventsListContainer');
     const noEventsMsg = $('#noEventsMessage');
     
-    if (allEvents.length === 0) {
+    try {
+        allEvents = await getAllEventsFromFirebase();
+        
+        if (allEvents.length === 0) {
+            container.empty();
+            container.html('<div class="column"><p style="text-align: center; font-size: 1.6rem; color: #666666; padding: 3rem;">No events available yet.</p></div>');
+            noEventsMsg.hide();
+            $('#paginationContainer').hide();
+            return;
+        }
+        
+        // Sort events by date (newest first)
+        allEvents = allEvents.sort(function(a, b) {
+            return new Date(b.date) - new Date(a.date);
+        });
+        
+        // Apply search filter if there's a search term
+        const searchTerm = $('#eventSearch').val();
+        if (searchTerm) {
+            filterEvents(searchTerm);
+        } else {
+            filteredEvents = allEvents;
+            displayEventsWithPagination();
+        }
+    } catch (error) {
+        console.error('Error loading events:', error);
         container.empty();
-        container.html('<div class="column"><p style="text-align: center; font-size: 1.6rem; color: #666666; padding: 3rem;">No events available yet.</p></div>');
+        container.html('<div class="column"><p style="text-align: center; font-size: 1.6rem; color: #dd4043; padding: 3rem;">Error loading events. Please refresh the page.</p></div>');
         noEventsMsg.hide();
         $('#paginationContainer').hide();
-        return;
-    }
-    
-    // Sort events by date (newest first)
-    allEvents = allEvents.sort(function(a, b) {
-        return new Date(b.date) - new Date(a.date);
-    });
-    
-    // Apply search filter if there's a search term
-    const searchTerm = $('#eventSearch').val();
-    if (searchTerm) {
-        filterEvents(searchTerm);
-    } else {
-        filteredEvents = allEvents;
-        displayEventsWithPagination();
     }
 }
 

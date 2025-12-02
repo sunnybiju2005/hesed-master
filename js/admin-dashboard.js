@@ -176,7 +176,7 @@ function previewImage(file, previewId) {
 }
 
 // Save News Item
-function saveNewsItem() {
+async function saveNewsItem() {
     const title = $('#newsTitle').val();
     const text = $('#newsText').val();
     const imageFile = $('#newsImage')[0].files[0];
@@ -186,43 +186,35 @@ function saveNewsItem() {
         return;
     }
 
-    // Get existing news items
-    let newsItems = JSON.parse(localStorage.getItem('newsItems') || '[]');
-    
     // Create new item
     const newItem = {
-        id: Date.now(),
         title: title,
         text: text,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         image: null
     };
 
-    // Handle image upload
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            newItem.image = e.target.result;
-            newsItems.push(newItem);
-            localStorage.setItem('newsItems', JSON.stringify(newsItems));
-            updateIndexPageNews();
-            loadNewsItems();
-            clearNewsForm();
-            showMessage('newsMessage', 'News item saved successfully!', 'success');
-        };
-        reader.readAsDataURL(imageFile);
-    } else {
-        newsItems.push(newItem);
-        localStorage.setItem('newsItems', JSON.stringify(newsItems));
-        updateIndexPageNews();
+    try {
+        // Handle image upload to Firebase Storage
+        if (imageFile) {
+            const imagePath = `news/${Date.now()}_${imageFile.name}`;
+            const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath);
+            newItem.image = imageUrl;
+        }
+
+        // Save to Firebase
+        await saveNewsItemToFirebase(newItem);
         loadNewsItems();
         clearNewsForm();
         showMessage('newsMessage', 'News item saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving news item:', error);
+        showMessage('newsMessage', 'Error saving news item. Please try again.', 'error');
     }
 }
 
 // Save Activity Item
-function saveActivityItem() {
+async function saveActivityItem() {
     const title = $('#activityTitle').val();
     const text = $('#activityText').val();
     const imageFile = $('#activityImage')[0].files[0];
@@ -232,162 +224,208 @@ function saveActivityItem() {
         return;
     }
 
-    // Get existing activities
-    let activitiesItems = JSON.parse(localStorage.getItem('activitiesItems') || '[]');
-    
     // Create new item
     const newItem = {
-        id: Date.now(),
         title: title,
         text: text,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         image: null
     };
 
-    // Handle image upload
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            newItem.image = e.target.result;
-            activitiesItems.push(newItem);
-            localStorage.setItem('activitiesItems', JSON.stringify(activitiesItems));
-            updateIndexPageActivities();
-            loadActivitiesItems();
-            clearActivityForm();
-            showMessage('activitiesMessage', 'Activity saved successfully!', 'success');
-        };
-        reader.readAsDataURL(imageFile);
-    } else {
-        activitiesItems.push(newItem);
-        localStorage.setItem('activitiesItems', JSON.stringify(activitiesItems));
-        updateIndexPageActivities();
+    try {
+        // Handle image upload to Firebase Storage
+        if (imageFile) {
+            const imagePath = `activities/${Date.now()}_${imageFile.name}`;
+            const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath);
+            newItem.image = imageUrl;
+        }
+
+        // Save to Firebase
+        await saveActivityItemToFirebase(newItem);
         loadActivitiesItems();
         clearActivityForm();
         showMessage('activitiesMessage', 'Activity saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving activity item:', error);
+        showMessage('activitiesMessage', 'Error saving activity. Please try again.', 'error');
     }
 }
 
 // Load News Items
-function loadNewsItems() {
-    const newsItems = JSON.parse(localStorage.getItem('newsItems') || '[]');
+async function loadNewsItems() {
     const listContainer = $('#newsItemsList');
-    
     listContainer.empty();
     
-    if (newsItems.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #666666;">No news items yet. Create your first news item above.</p>');
-        return;
-    }
+    try {
+        const newsItems = await getAllNewsItemsFromFirebase();
+        
+        if (newsItems.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #666666;">No news items yet. Create your first news item above.</p>');
+            return;
+        }
 
-    newsItems.forEach(function(item) {
-        const itemHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info">
-                    <h3>${item.title}</h3>
-                    <p>${item.text.substring(0, 100)}${item.text.length > 100 ? '...' : ''}</p>
-                    <p style="font-size: 1.2rem; color: #999999; margin-top: 0.5rem;">Date: ${item.date}</p>
+        newsItems.forEach(function(item) {
+            const itemHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info">
+                        <h3>${item.title}</h3>
+                        <p>${item.text.substring(0, 100)}${item.text.length > 100 ? '...' : ''}</p>
+                        <p style="font-size: 1.2rem; color: #999999; margin-top: 0.5rem;">Date: ${item.date}</p>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-secondary" onclick="editNewsItem('${item.id}')">Edit</button>
+                        <button class="admin-btn admin-btn-danger" onclick="deleteNewsItem('${item.id}')">Delete</button>
+                    </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-secondary" onclick="editNewsItem(${item.id})">Edit</button>
-                    <button class="admin-btn admin-btn-danger" onclick="deleteNewsItem(${item.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(itemHtml);
-    });
+            `;
+            listContainer.append(itemHtml);
+        });
+    } catch (error) {
+        console.error('Error loading news items:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading news items. Please refresh the page.</p>');
+    }
 }
 
 // Load Activities Items
-function loadActivitiesItems() {
-    const activitiesItems = JSON.parse(localStorage.getItem('activitiesItems') || '[]');
+async function loadActivitiesItems() {
     const listContainer = $('#activitiesItemsList');
-    
     listContainer.empty();
     
-    if (activitiesItems.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No activities yet. Create your first activity above.</p>');
-        return;
-    }
+    try {
+        const activitiesItems = await getAllActivityItemsFromFirebase();
+        
+        if (activitiesItems.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No activities yet. Create your first activity above.</p>');
+            return;
+        }
 
-    activitiesItems.forEach(function(item) {
-        const itemHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info">
-                    <h3>${item.title}</h3>
-                    <p>${item.text.substring(0, 100)}${item.text.length > 100 ? '...' : ''}</p>
-                    <p style="font-size: 1.2rem; color: #999999; margin-top: 0.5rem;">Date: ${item.date}</p>
+        activitiesItems.forEach(function(item) {
+            const itemHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info">
+                        <h3>${item.title}</h3>
+                        <p>${item.text.substring(0, 100)}${item.text.length > 100 ? '...' : ''}</p>
+                        <p style="font-size: 1.2rem; color: #999999; margin-top: 0.5rem;">Date: ${item.date}</p>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-secondary" onclick="editActivityItem('${item.id}')">Edit</button>
+                        <button class="admin-btn admin-btn-danger" onclick="deleteActivityItem('${item.id}')">Delete</button>
+                    </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-secondary" onclick="editActivityItem(${item.id})">Edit</button>
-                    <button class="admin-btn admin-btn-danger" onclick="deleteActivityItem(${item.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(itemHtml);
-    });
+            `;
+            listContainer.append(itemHtml);
+        });
+    } catch (error) {
+        console.error('Error loading activities:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading activities. Please refresh the page.</p>');
+    }
 }
 
 // Edit News Item
-function editNewsItem(id) {
-    const newsItems = JSON.parse(localStorage.getItem('newsItems') || '[]');
-    const item = newsItems.find(n => n.id === id);
-    
-    if (item) {
-        $('#newsTitle').val(item.title);
-        $('#newsText').val(item.text);
-        if (item.image) {
-            $('#newsImagePreview').html('<img src="' + item.image + '" alt="Preview">');
+async function editNewsItem(id) {
+    try {
+        const newsItems = await getAllNewsItemsFromFirebase();
+        const item = newsItems.find(n => n.id === id);
+        
+        if (item) {
+            $('#newsTitle').val(item.title);
+            $('#newsText').val(item.text);
+            if (item.image) {
+                $('#newsImagePreview').html('<img src="' + item.image + '" alt="Preview">');
+            }
+            
+            // Switch to news section
+            $('.admin-sidebar-item[data-section="news-activities"]').click();
+            setTimeout(() => {
+                $('.admin-subsection-tab[data-subsection="news"]').click();
+            }, 100);
+            
+            // Store editing ID
+            $('#newsForm').data('editingId', id);
         }
-        
-        // Switch to news section
-        $('.admin-sidebar-item[data-section="news"]').click();
-        
-        // Store editing ID
-        $('#newsForm').data('editingId', id);
+    } catch (error) {
+        console.error('Error loading news item for editing:', error);
+        showMessage('newsMessage', 'Error loading news item. Please try again.', 'error');
     }
 }
 
 // Edit Activity Item
-function editActivityItem(id) {
-    const activitiesItems = JSON.parse(localStorage.getItem('activitiesItems') || '[]');
-    const item = activitiesItems.find(a => a.id === id);
-    
-    if (item) {
-        $('#activityTitle').val(item.title);
-        $('#activityText').val(item.text);
-        if (item.image) {
-            $('#activityImagePreview').html('<img src="' + item.image + '" alt="Preview">');
+async function editActivityItem(id) {
+    try {
+        const activitiesItems = await getAllActivityItemsFromFirebase();
+        const item = activitiesItems.find(a => a.id === id);
+        
+        if (item) {
+            $('#activityTitle').val(item.title);
+            $('#activityText').val(item.text);
+            if (item.image) {
+                $('#activityImagePreview').html('<img src="' + item.image + '" alt="Preview">');
+            }
+            
+            // Switch to activities section
+            $('.admin-sidebar-item[data-section="news-activities"]').click();
+            setTimeout(() => {
+                $('.admin-subsection-tab[data-subsection="activities"]').click();
+            }, 100);
+            
+            // Store editing ID
+            $('#activitiesForm').data('editingId', id);
         }
-        
-        // Switch to activities section
-        $('.admin-sidebar-item[data-section="activities"]').click();
-        
-        // Store editing ID
-        $('#activitiesForm').data('editingId', id);
+    } catch (error) {
+        console.error('Error loading activity for editing:', error);
+        showMessage('activitiesMessage', 'Error loading activity. Please try again.', 'error');
     }
 }
 
 // Delete News Item
-function deleteNewsItem(id) {
+async function deleteNewsItem(id) {
     if (confirm('Are you sure you want to delete this news item?')) {
-        let newsItems = JSON.parse(localStorage.getItem('newsItems') || '[]');
-        newsItems = newsItems.filter(n => n.id !== id);
-        localStorage.setItem('newsItems', JSON.stringify(newsItems));
-        updateIndexPageNews();
-        loadNewsItems();
-        showMessage('newsMessage', 'News item deleted successfully!', 'success');
+        try {
+            // Get the item first to delete its image from storage
+            const newsItems = await getAllNewsItemsFromFirebase();
+            const item = newsItems.find(n => n.id === id);
+            
+            if (item && item.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(item.image);
+                } catch (error) {
+                    console.warn('Could not delete image from storage:', error);
+                }
+            }
+            
+            await deleteNewsItemFromFirebase(id);
+            loadNewsItems();
+            showMessage('newsMessage', 'News item deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting news item:', error);
+            showMessage('newsMessage', 'Error deleting news item. Please try again.', 'error');
+        }
     }
 }
 
 // Delete Activity Item
-function deleteActivityItem(id) {
+async function deleteActivityItem(id) {
     if (confirm('Are you sure you want to delete this activity?')) {
-        let activitiesItems = JSON.parse(localStorage.getItem('activitiesItems') || '[]');
-        activitiesItems = activitiesItems.filter(a => a.id !== id);
-        localStorage.setItem('activitiesItems', JSON.stringify(activitiesItems));
-        updateIndexPageActivities();
-        loadActivitiesItems();
-        showMessage('activitiesMessage', 'Activity deleted successfully!', 'success');
+        try {
+            // Get the item first to delete its image from storage
+            const activitiesItems = await getAllActivityItemsFromFirebase();
+            const item = activitiesItems.find(a => a.id === id);
+            
+            if (item && item.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(item.image);
+                } catch (error) {
+                    console.warn('Could not delete image from storage:', error);
+                }
+            }
+            
+            await deleteActivityItemFromFirebase(id);
+            loadActivitiesItems();
+            showMessage('activitiesMessage', 'Activity deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting activity:', error);
+            showMessage('activitiesMessage', 'Error deleting activity. Please try again.', 'error');
+        }
     }
 }
 
@@ -439,7 +477,7 @@ function updateIndexPageActivities() {
 }
 
 // Save Service Team Member
-function saveServiceTeamMember() {
+async function saveServiceTeamMember() {
     const name = $('#memberName').val();
     const position = $('#memberPosition').val();
     const imageFile = $('#memberImage')[0].files[0];
@@ -449,89 +487,100 @@ function saveServiceTeamMember() {
         return;
     }
 
-    // Get existing service team members
-    let serviceTeam = JSON.parse(localStorage.getItem('serviceTeam') || '[]');
-    
-    // Create new member
-    const newMember = {
-        id: Date.now(),
-        name: name,
-        position: position,
-        image: null
-    };
-
-    // Handle image upload
-    if (imageFile) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            newMember.image = e.target.result;
-            serviceTeam.push(newMember);
-            localStorage.setItem('serviceTeam', JSON.stringify(serviceTeam));
-            updateAboutPageServiceTeam();
-            loadServiceTeamMembers();
-            clearServiceTeamForm();
-            showMessage('serviceTeamMessage', 'Service team member saved successfully!', 'success');
-        };
-        reader.readAsDataURL(imageFile);
-    } else {
+    if (!imageFile) {
         showMessage('serviceTeamMessage', 'Please upload a profile image', 'error');
+        return;
+    }
+
+    try {
+        // Upload image to Firebase Storage
+        const imagePath = `teams/service/${Date.now()}_${imageFile.name}`;
+        const imageUrl = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        
+        const newMember = {
+            name: name,
+            position: position,
+            image: imageUrl
+        };
+
+        await saveServiceTeamMemberToFirebase(newMember);
+        loadServiceTeamMembers();
+        clearServiceTeamForm();
+        showMessage('serviceTeamMessage', 'Service team member saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving service team member:', error);
+        showMessage('serviceTeamMessage', 'Error saving member. Please try again.', 'error');
     }
 }
 
 // Load Service Team Members
-function loadServiceTeamMembers() {
-    const serviceTeam = JSON.parse(localStorage.getItem('serviceTeam') || '[]');
+async function loadServiceTeamMembers() {
     const listContainer = $('#serviceTeamList');
-    
     listContainer.empty();
     
-    if (serviceTeam.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No service team members yet. Add your first member above.</p>');
-        return;
-    }
+    try {
+        const serviceTeam = await getAllServiceTeamMembersFromFirebase();
+        
+        if (serviceTeam.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No service team members yet. Add your first member above.</p>');
+            return;
+        }
 
-    serviceTeam.forEach(function(member) {
-        const memberHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
-                    ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>'}
-                    <div>
-                        <h3>${member.name}</h3>
-                        <p>${member.position}</p>
+        serviceTeam.forEach(function(member) {
+            const memberHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
+                        ${member.image ? `<img src="${member.image}" alt="${member.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">` : '<div style="width: 80px; height: 80px; border-radius: 50%; background-color: #444444;"></div>'}
+                        <div>
+                            <h3>${member.name}</h3>
+                            <p>${member.position}</p>
+                        </div>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-secondary" onclick="editServiceTeamMember('${member.id}')">Edit</button>
+                        <button class="admin-btn admin-btn-danger" onclick="deleteServiceTeamMember('${member.id}')">Delete</button>
                     </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-secondary" onclick="editServiceTeamMember(${member.id})">Edit</button>
-                    <button class="admin-btn admin-btn-danger" onclick="deleteServiceTeamMember(${member.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(memberHtml);
-    });
+            `;
+            listContainer.append(memberHtml);
+        });
+    } catch (error) {
+        console.error('Error loading service team members:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading service team. Please refresh the page.</p>');
+    }
 }
 
 // Edit Service Team Member
-function editServiceTeamMember(id) {
-    const serviceTeam = JSON.parse(localStorage.getItem('serviceTeam') || '[]');
-    const member = serviceTeam.find(m => m.id === id);
-    
-    if (member) {
-        $('#memberName').val(member.name);
-        $('#memberPosition').val(member.position);
-        if (member.image) {
-            $('#memberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+async function editServiceTeamMember(id) {
+    try {
+        const serviceTeam = await getAllServiceTeamMembersFromFirebase();
+        const member = serviceTeam.find(m => m.id === id);
+        
+        if (member) {
+            $('#memberName').val(member.name);
+            $('#memberPosition').val(member.position);
+            if (member.image) {
+                $('#memberImagePreview').html('<img src="' + member.image + '" alt="Preview">');
+            }
+            
+            // Switch to service team section
+            $('.admin-sidebar-item[data-section="about"]').click();
+            setTimeout(() => {
+                $('.admin-subsection-tab[data-subsection="service-team"]').click();
+            }, 100);
+            
+            // Store editing ID
+            $('#serviceTeamForm').data('editingId', id);
+            $('#serviceTeamForm').data('existingImage', member.image);
         }
-        
-        // Switch to service team section
-        $('.admin-sidebar-item[data-section="service-team"]').click();
-        
-        // Store editing ID
-        $('#serviceTeamForm').data('editingId', id);
+    } catch (error) {
+        console.error('Error loading service team member for editing:', error);
+        showMessage('serviceTeamMessage', 'Error loading member. Please try again.', 'error');
     }
 }
 
 // Update Service Team Member
-function updateServiceTeamMember(id) {
+async function updateServiceTeamMember(id) {
     const name = $('#memberName').val();
     const position = $('#memberPosition').val();
     const imageFile = $('#memberImage')[0].files[0];
@@ -541,43 +590,70 @@ function updateServiceTeamMember(id) {
         return;
     }
 
-    let serviceTeam = JSON.parse(localStorage.getItem('serviceTeam') || '[]');
-    const memberIndex = serviceTeam.findIndex(m => m.id === id);
-    
-    if (memberIndex !== -1) {
-        serviceTeam[memberIndex].name = name;
-        serviceTeam[memberIndex].position = position;
-
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                serviceTeam[memberIndex].image = e.target.result;
-                localStorage.setItem('serviceTeam', JSON.stringify(serviceTeam));
-                updateAboutPageServiceTeam();
-                loadServiceTeamMembers();
-                clearServiceTeamForm();
-                showMessage('serviceTeamMessage', 'Service team member updated successfully!', 'success');
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            localStorage.setItem('serviceTeam', JSON.stringify(serviceTeam));
-            updateAboutPageServiceTeam();
-            loadServiceTeamMembers();
-            clearServiceTeamForm();
-            showMessage('serviceTeamMessage', 'Service team member updated successfully!', 'success');
+    try {
+        const serviceTeam = await getAllServiceTeamMembersFromFirebase();
+        const member = serviceTeam.find(m => m.id === id);
+        
+        if (!member) {
+            showMessage('serviceTeamMessage', 'Member not found', 'error');
+            return;
         }
+
+        const updatedMember = {
+            name: name,
+            position: position,
+            image: member.image // Keep existing image by default
+        };
+
+        // Handle new image upload
+        if (imageFile) {
+            // Delete old image if it exists
+            if (member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete old image:', error);
+                }
+            }
+            
+            // Upload new image
+            const imagePath = `teams/service/${Date.now()}_${imageFile.name}`;
+            updatedMember.image = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        }
+
+        await updateServiceTeamMemberInFirebase(id, updatedMember);
+        loadServiceTeamMembers();
+        clearServiceTeamForm();
+        showMessage('serviceTeamMessage', 'Service team member updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating service team member:', error);
+        showMessage('serviceTeamMessage', 'Error updating member. Please try again.', 'error');
     }
 }
 
 // Delete Service Team Member
-function deleteServiceTeamMember(id) {
+async function deleteServiceTeamMember(id) {
     if (confirm('Are you sure you want to delete this service team member?')) {
-        let serviceTeam = JSON.parse(localStorage.getItem('serviceTeam') || '[]');
-        serviceTeam = serviceTeam.filter(m => m.id !== id);
-        localStorage.setItem('serviceTeam', JSON.stringify(serviceTeam));
-        updateAboutPageServiceTeam();
-        loadServiceTeamMembers();
-        showMessage('serviceTeamMessage', 'Service team member deleted successfully!', 'success');
+        try {
+            // Get the member first to delete their image from storage
+            const serviceTeam = await getAllServiceTeamMembersFromFirebase();
+            const member = serviceTeam.find(m => m.id === id);
+            
+            if (member && member.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(member.image);
+                } catch (error) {
+                    console.warn('Could not delete image from storage:', error);
+                }
+            }
+            
+            await deleteServiceTeamMemberFromFirebase(id);
+            loadServiceTeamMembers();
+            showMessage('serviceTeamMessage', 'Service team member deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting service team member:', error);
+            showMessage('serviceTeamMessage', 'Error deleting member. Please try again.', 'error');
+        }
     }
 }
 
@@ -1173,7 +1249,7 @@ function previewMultipleImages(files, previewId) {
 }
 
 // Save Event
-function saveEvent() {
+async function saveEvent() {
     const name = $('#eventName').val();
     const date = $('#eventDate').val();
     const description = $('#eventDescription').val();
@@ -1185,9 +1261,7 @@ function saveEvent() {
         return;
     }
 
-    let events = JSON.parse(localStorage.getItem('events') || '[]');
     const newEvent = {
-        id: Date.now(),
         name: name,
         date: date,
         description: description,
@@ -1203,123 +1277,120 @@ function saveEvent() {
         newEvent.videos = videoUrls;
     }
 
-    // Process photos
-    if (photoFiles && photoFiles.length > 0) {
-        const photoPromises = Array.from(photoFiles).map(function(file) {
-            return new Promise(function(resolve) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    resolve(e.target.result);
-                };
-                reader.readAsDataURL(file);
+    try {
+        // Process photos - upload to Firebase Storage
+        if (photoFiles && photoFiles.length > 0) {
+            const photoPromises = Array.from(photoFiles).map(function(file) {
+                const imagePath = `events/${Date.now()}_${file.name}`;
+                return uploadImageToFirebaseStorage(file, imagePath);
             });
-        });
 
-        Promise.all(photoPromises).then(function(photos) {
-            newEvent.photos = photos;
-            events.push(newEvent);
-            localStorage.setItem('events', JSON.stringify(events));
-            updateEventsPage();
-            loadEvents();
-            clearEventsForm();
-            showMessage('eventsMessage', 'Event saved successfully!', 'success');
-        });
-    } else {
-        events.push(newEvent);
-        localStorage.setItem('events', JSON.stringify(events));
-        updateEventsPage();
+            newEvent.photos = await Promise.all(photoPromises);
+        }
+
+        // Save to Firebase
+        await saveEventToFirebase(newEvent);
         loadEvents();
         clearEventsForm();
         showMessage('eventsMessage', 'Event saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving event:', error);
+        showMessage('eventsMessage', 'Error saving event. Please try again.', 'error');
     }
 }
 
 // Load Events
-function loadEvents() {
-    const events = JSON.parse(localStorage.getItem('events') || '[]');
+async function loadEvents() {
     const listContainer = $('#eventsList');
     listContainer.empty();
     
-    if (events.length === 0) {
-        listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No events yet. Create your first event above.</p>');
-        return;
-    }
-
-    // Sort by date (newest first)
-    const sortedEvents = events.sort(function(a, b) {
-        return new Date(b.date) - new Date(a.date);
-    });
-
-    sortedEvents.forEach(function(event) {
-        const eventDate = new Date(event.date);
-        const formattedDate = eventDate.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
+    try {
+        const events = await getAllEventsFromFirebase();
         
-        const mainImage = event.photos && event.photos.length > 0 ? event.photos[0] : '';
-        
-        const eventHtml = `
-            <div class="admin-item-card">
-                <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
-                    ${mainImage ? `<img src="${mainImage}" alt="${event.name}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 4px;">` : '<div style="width: 120px; height: 120px; background-color: #444444; border-radius: 4px;"></div>'}
-                    <div style="flex: 1;">
-                        <h3>${event.name}</h3>
-                        <p>${formattedDate}</p>
-                        <p style="font-size: 1.2rem; color: #aaaaaa; margin-top: 0.5rem;">${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}</p>
-                        <p style="font-size: 1.2rem; color: #aaaaaa; margin-top: 0.5rem;">
-                            ${event.photos ? event.photos.length : 0} Photo${event.photos && event.photos.length !== 1 ? 's' : ''} | 
-                            ${event.videos ? event.videos.length : 0} Video${event.videos && event.videos.length !== 1 ? 's' : ''}
-                        </p>
+        if (events.length === 0) {
+            listContainer.html('<p style="font-size: 1.4rem; color: #cccccc;">No events yet. Create your first event above.</p>');
+            return;
+        }
+
+        events.forEach(function(event) {
+            const eventDate = new Date(event.date);
+            const formattedDate = eventDate.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            const mainImage = event.photos && event.photos.length > 0 ? event.photos[0] : '';
+            
+            const eventHtml = `
+                <div class="admin-item-card">
+                    <div class="admin-item-info" style="display: flex; align-items: center; gap: 2rem;">
+                        ${mainImage ? `<img src="${mainImage}" alt="${event.name}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 4px;">` : '<div style="width: 120px; height: 120px; background-color: #444444; border-radius: 4px;"></div>'}
+                        <div style="flex: 1;">
+                            <h3>${event.name}</h3>
+                            <p>${formattedDate}</p>
+                            <p style="font-size: 1.2rem; color: #aaaaaa; margin-top: 0.5rem;">${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}</p>
+                            <p style="font-size: 1.2rem; color: #aaaaaa; margin-top: 0.5rem;">
+                                ${event.photos ? event.photos.length : 0} Photo${event.photos && event.photos.length !== 1 ? 's' : ''} | 
+                                ${event.videos ? event.videos.length : 0} Video${event.videos && event.videos.length !== 1 ? 's' : ''}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="admin-item-actions">
+                        <button class="admin-btn admin-btn-secondary" onclick="editEvent('${event.id}')">Edit</button>
+                        <button class="admin-btn admin-btn-danger" onclick="deleteEvent('${event.id}')">Delete</button>
                     </div>
                 </div>
-                <div class="admin-item-actions">
-                    <button class="admin-btn admin-btn-secondary" onclick="editEvent(${event.id})">Edit</button>
-                    <button class="admin-btn admin-btn-danger" onclick="deleteEvent(${event.id})">Delete</button>
-                </div>
-            </div>
-        `;
-        listContainer.append(eventHtml);
-    });
+            `;
+            listContainer.append(eventHtml);
+        });
+    } catch (error) {
+        console.error('Error loading events:', error);
+        listContainer.html('<p style="font-size: 1.4rem; color: #dd4043;">Error loading events. Please refresh the page.</p>');
+    }
 }
 
 // Edit Event
-function editEvent(id) {
-    const events = JSON.parse(localStorage.getItem('events') || '[]');
-    const event = events.find(e => e.id === id);
-    
-    if (event) {
-        $('#eventName').val(event.name);
-        $('#eventDate').val(event.date);
-        $('#eventDescription').val(event.description);
+async function editEvent(id) {
+    try {
+        const events = await getAllEventsFromFirebase();
+        const event = events.find(e => e.id === id);
         
-        // Display existing photos
-        const photosPreview = $('#eventPhotosPreview');
-        photosPreview.empty();
-        if (event.photos && event.photos.length > 0) {
-            event.photos.forEach(function(photo) {
-                photosPreview.append('<img src="' + photo + '" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 4px; margin: 0.5rem;">');
-            });
+        if (event) {
+            $('#eventName').val(event.name);
+            $('#eventDate').val(event.date);
+            $('#eventDescription').val(event.description);
+            
+            // Display existing photos
+            const photosPreview = $('#eventPhotosPreview');
+            photosPreview.empty();
+            if (event.photos && event.photos.length > 0) {
+                event.photos.forEach(function(photo) {
+                    photosPreview.append('<img src="' + photo + '" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 4px; margin: 0.5rem;">');
+                });
+            }
+            
+            // Display existing videos
+            if (event.videos && event.videos.length > 0) {
+                $('#eventVideos').val(event.videos.join('\n'));
+            }
+            
+            // Switch to events section
+            $('.admin-sidebar-item[data-section="events"]').click();
+            
+            // Store editing ID
+            $('#eventsForm').data('editingId', id);
+            $('#eventsForm').data('existingPhotos', event.photos || []);
         }
-        
-        // Display existing videos
-        if (event.videos && event.videos.length > 0) {
-            $('#eventVideos').val(event.videos.join('\n'));
-        }
-        
-        // Switch to events section
-        $('.admin-sidebar-item[data-section="events"]').click();
-        
-        // Store editing ID
-        $('#eventsForm').data('editingId', id);
-        $('#eventsForm').data('existingPhotos', event.photos || []);
+    } catch (error) {
+        console.error('Error loading event for editing:', error);
+        showMessage('eventsMessage', 'Error loading event. Please try again.', 'error');
     }
 }
 
 // Update Event
-function updateEvent(id) {
+async function updateEvent(id) {
     const name = $('#eventName').val();
     const date = $('#eventDate').val();
     const description = $('#eventDescription').val();
@@ -1331,68 +1402,79 @@ function updateEvent(id) {
         return;
     }
 
-    let events = JSON.parse(localStorage.getItem('events') || '[]');
-    const eventIndex = events.findIndex(e => e.id === id);
-    
-    if (eventIndex !== -1) {
-        events[eventIndex].name = name;
-        events[eventIndex].date = date;
-        events[eventIndex].description = description;
+    try {
+        const events = await getAllEventsFromFirebase();
+        const event = events.find(e => e.id === id);
+        
+        if (!event) {
+            showMessage('eventsMessage', 'Event not found', 'error');
+            return;
+        }
+
+        const updatedEvent = {
+            name: name,
+            date: date,
+            description: description,
+            photos: event.photos || [], // Keep existing photos by default
+            videos: []
+        };
 
         // Process videos
         if (videosText) {
             const videoUrls = videosText.split('\n').filter(function(url) {
                 return url.trim().length > 0;
             });
-            events[eventIndex].videos = videoUrls;
-        } else {
-            events[eventIndex].videos = [];
+            updatedEvent.videos = videoUrls;
         }
 
-        // Process photos - keep existing if no new photos uploaded
+        // Process photos - upload new ones and merge with existing
         if (photoFiles && photoFiles.length > 0) {
-            const photoPromises = Array.from(photoFiles).map(function(file) {
-                return new Promise(function(resolve) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        resolve(e.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                });
+            const existingPhotos = $('#eventsForm').data('existingPhotos') || [];
+            const newPhotoPromises = Array.from(photoFiles).map(function(file) {
+                const imagePath = `events/${Date.now()}_${file.name}`;
+                return uploadImageToFirebaseStorage(file, imagePath);
             });
 
-            Promise.all(photoPromises).then(function(newPhotos) {
-                // Merge with existing photos
-                const existingPhotos = $('#eventsForm').data('existingPhotos') || [];
-                events[eventIndex].photos = existingPhotos.concat(newPhotos);
-                localStorage.setItem('events', JSON.stringify(events));
-                updateEventsPage();
-                loadEvents();
-                clearEventsForm();
-                showMessage('eventsMessage', 'Event updated successfully!', 'success');
-            });
-        } else {
-            // Keep existing photos
-            const existingPhotos = $('#eventsForm').data('existingPhotos') || [];
-            events[eventIndex].photos = existingPhotos;
-            localStorage.setItem('events', JSON.stringify(events));
-            updateEventsPage();
-            loadEvents();
-            clearEventsForm();
-            showMessage('eventsMessage', 'Event updated successfully!', 'success');
+            const newPhotos = await Promise.all(newPhotoPromises);
+            updatedEvent.photos = existingPhotos.concat(newPhotos);
         }
+
+        await updateEventInFirebase(id, updatedEvent);
+        loadEvents();
+        clearEventsForm();
+        showMessage('eventsMessage', 'Event updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating event:', error);
+        showMessage('eventsMessage', 'Error updating event. Please try again.', 'error');
     }
 }
 
 // Delete Event
-function deleteEvent(id) {
+async function deleteEvent(id) {
     if (confirm('Are you sure you want to delete this event?')) {
-        let events = JSON.parse(localStorage.getItem('events') || '[]');
-        events = events.filter(e => e.id !== id);
-        localStorage.setItem('events', JSON.stringify(events));
-        updateEventsPage();
-        loadEvents();
-        showMessage('eventsMessage', 'Event deleted successfully!', 'success');
+        try {
+            // Get the event first to delete its photos from storage
+            const events = await getAllEventsFromFirebase();
+            const event = events.find(e => e.id === id);
+            
+            if (event && event.photos && event.photos.length > 0) {
+                // Delete all photos from storage
+                for (const photoUrl of event.photos) {
+                    try {
+                        await deleteImageFromFirebaseStorage(photoUrl);
+                    } catch (error) {
+                        console.warn('Could not delete photo from storage:', error);
+                    }
+                }
+            }
+            
+            await deleteEventFromFirebase(id);
+            loadEvents();
+            showMessage('eventsMessage', 'Event deleted successfully!', 'success');
+        } catch (error) {
+            console.error('Error deleting event:', error);
+            showMessage('eventsMessage', 'Error deleting event. Please try again.', 'error');
+        }
     }
 }
 
@@ -1667,7 +1749,7 @@ $(document).ready(function() {
 });
 
 // Update News Item
-function updateNewsItem(id) {
+async function updateNewsItem(id) {
     const title = $('#newsTitle').val();
     const text = $('#newsText').val();
     const imageFile = $('#newsImage')[0].files[0];
@@ -1677,36 +1759,50 @@ function updateNewsItem(id) {
         return;
     }
 
-    let newsItems = JSON.parse(localStorage.getItem('newsItems') || '[]');
-    const itemIndex = newsItems.findIndex(n => n.id === id);
-    
-    if (itemIndex !== -1) {
-        newsItems[itemIndex].title = title;
-        newsItems[itemIndex].text = text;
-
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                newsItems[itemIndex].image = e.target.result;
-                localStorage.setItem('newsItems', JSON.stringify(newsItems));
-                updateIndexPageNews();
-                loadNewsItems();
-                clearNewsForm();
-                showMessage('newsMessage', 'News item updated successfully!', 'success');
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            localStorage.setItem('newsItems', JSON.stringify(newsItems));
-            updateIndexPageNews();
-            loadNewsItems();
-            clearNewsForm();
-            showMessage('newsMessage', 'News item updated successfully!', 'success');
+    try {
+        const newsItems = await getAllNewsItemsFromFirebase();
+        const item = newsItems.find(n => n.id === id);
+        
+        if (!item) {
+            showMessage('newsMessage', 'News item not found', 'error');
+            return;
         }
+
+        const updatedItem = {
+            title: title,
+            text: text,
+            date: item.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            image: item.image // Keep existing image by default
+        };
+
+        // Handle new image upload
+        if (imageFile) {
+            // Delete old image if it exists
+            if (item.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(item.image);
+                } catch (error) {
+                    console.warn('Could not delete old image:', error);
+                }
+            }
+            
+            // Upload new image
+            const imagePath = `news/${Date.now()}_${imageFile.name}`;
+            updatedItem.image = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        }
+
+        await updateNewsItemInFirebase(id, updatedItem);
+        loadNewsItems();
+        clearNewsForm();
+        showMessage('newsMessage', 'News item updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating news item:', error);
+        showMessage('newsMessage', 'Error updating news item. Please try again.', 'error');
     }
 }
 
 // Update Activity Item
-function updateActivityItem(id) {
+async function updateActivityItem(id) {
     const title = $('#activityTitle').val();
     const text = $('#activityText').val();
     const imageFile = $('#activityImage')[0].files[0];
@@ -1716,31 +1812,45 @@ function updateActivityItem(id) {
         return;
     }
 
-    let activitiesItems = JSON.parse(localStorage.getItem('activitiesItems') || '[]');
-    const itemIndex = activitiesItems.findIndex(a => a.id === id);
-    
-    if (itemIndex !== -1) {
-        activitiesItems[itemIndex].title = title;
-        activitiesItems[itemIndex].text = text;
-
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                activitiesItems[itemIndex].image = e.target.result;
-                localStorage.setItem('activitiesItems', JSON.stringify(activitiesItems));
-                updateIndexPageActivities();
-                loadActivitiesItems();
-                clearActivityForm();
-                showMessage('activitiesMessage', 'Activity updated successfully!', 'success');
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            localStorage.setItem('activitiesItems', JSON.stringify(activitiesItems));
-            updateIndexPageActivities();
-            loadActivitiesItems();
-            clearActivityForm();
-            showMessage('activitiesMessage', 'Activity updated successfully!', 'success');
+    try {
+        const activitiesItems = await getAllActivityItemsFromFirebase();
+        const item = activitiesItems.find(a => a.id === id);
+        
+        if (!item) {
+            showMessage('activitiesMessage', 'Activity not found', 'error');
+            return;
         }
+
+        const updatedItem = {
+            title: title,
+            text: text,
+            date: item.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            image: item.image // Keep existing image by default
+        };
+
+        // Handle new image upload
+        if (imageFile) {
+            // Delete old image if it exists
+            if (item.image) {
+                try {
+                    await deleteImageFromFirebaseStorage(item.image);
+                } catch (error) {
+                    console.warn('Could not delete old image:', error);
+                }
+            }
+            
+            // Upload new image
+            const imagePath = `activities/${Date.now()}_${imageFile.name}`;
+            updatedItem.image = await uploadImageToFirebaseStorage(imageFile, imagePath);
+        }
+
+        await updateActivityItemInFirebase(id, updatedItem);
+        loadActivitiesItems();
+        clearActivityForm();
+        showMessage('activitiesMessage', 'Activity updated successfully!', 'success');
+    } catch (error) {
+        console.error('Error updating activity:', error);
+        showMessage('activitiesMessage', 'Error updating activity. Please try again.', 'error');
     }
 }
 
