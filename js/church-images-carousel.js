@@ -4,7 +4,7 @@ $(document).ready(function() {
     loadChurchImagesToCarousel();
     
     // Listen for Realtime Database changes to update carousel dynamically
-    if (window.location.pathname.includes('about.html')) {
+    if (window.location.pathname.includes('about.html') || window.location.pathname.includes('index.html') || window.location.pathname.endsWith('/')) {
         if (typeof db !== 'undefined') {
             db.ref('churchImages').on('value', function(snapshot) {
                 loadChurchImagesToCarousel();
@@ -15,6 +15,7 @@ $(document).ready(function() {
 
 async function loadChurchImagesToCarousel() {
     const track = $('#churchImagesTrack');
+    const container = track.closest('.church-images-carousel-container');
     
     if (track.length === 0) {
         return; // Carousel doesn't exist on this page
@@ -28,13 +29,13 @@ async function loadChurchImagesToCarousel() {
         
         if (churchImages.length === 0) {
             // No images - hide carousel (no default/template images)
-            track.hide();
+            if (container.length) container.hide();
             return;
         }
         
-        track.show();
+        if (container.length) container.show();
         
-        // Create duplicate set for seamless loop
+        // Create duplicate set for seamless loop (scrolls left to right)
         const allImages = [...churchImages, ...churchImages];
         
         allImages.forEach(function(imageData) {
@@ -57,13 +58,16 @@ async function loadChurchImagesToCarousel() {
             track.append(img);
         });
         
-        // Restart animation
-        track.css('animation', 'none');
+        // Set initial position for left-to-right scroll and restart animation
+        track.css({
+            'animation': 'none',
+            'transform': 'translateX(-50%)'
+        });
         setTimeout(function() {
-            track.css('animation', 'scrollImages 30s linear infinite');
+            track.css('animation', 'scrollImagesRight 30s linear infinite');
         }, 10);
     } catch (error) {
         console.error('Error loading church images:', error);
-        track.hide();
+        if (container.length) container.hide();
     }
 }

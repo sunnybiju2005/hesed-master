@@ -3688,6 +3688,16 @@ html.no-csstransitions .hero-content {
   }
 }
 
+/* Animation for scrolling left to right */
+@keyframes scrollImagesRight {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 /* Duplicate images for seamless loop */
 .church-images-track::after {
   content: '';

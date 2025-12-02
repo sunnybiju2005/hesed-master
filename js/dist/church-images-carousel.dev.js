@@ -12,7 +12,7 @@ function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr
 $(document).ready(function () {
   loadChurchImagesToCarousel(); // Listen for Realtime Database changes to update carousel dynamically
 
-  if (window.location.pathname.includes('about.html')) {
+  if (window.location.pathname.includes('about.html') || window.location.pathname.includes('index.html') || window.location.pathname.endsWith('/')) {
     if (typeof db !== 'undefined') {
       db.ref('churchImages').on('value', function (snapshot) {
         loadChurchImagesToCarousel();
@@ -22,41 +22,42 @@ $(document).ready(function () {
 });
 
 function loadChurchImagesToCarousel() {
-  var track, churchImages, allImages;
+  var track, container, churchImages, allImages;
   return regeneratorRuntime.async(function loadChurchImagesToCarousel$(_context) {
     while (1) {
       switch (_context.prev = _context.next) {
         case 0:
           track = $('#churchImagesTrack');
+          container = track.closest('.church-images-carousel-container');
 
           if (!(track.length === 0)) {
-            _context.next = 3;
+            _context.next = 4;
             break;
           }
 
           return _context.abrupt("return");
 
-        case 3:
+        case 4:
           // Clear existing content
           track.empty();
-          _context.prev = 4;
-          _context.next = 7;
+          _context.prev = 5;
+          _context.next = 8;
           return regeneratorRuntime.awrap(getAllChurchImagesFromFirebase());
 
-        case 7:
+        case 8:
           churchImages = _context.sent;
 
           if (!(churchImages.length === 0)) {
-            _context.next = 11;
+            _context.next = 12;
             break;
           }
 
           // No images - hide carousel (no default/template images)
-          track.hide();
+          if (container.length) container.hide();
           return _context.abrupt("return");
 
-        case 11:
-          track.show(); // Create duplicate set for seamless loop
+        case 12:
+          if (container.length) container.show(); // Create duplicate set for seamless loop (scrolls left to right)
 
           allImages = [].concat(_toConsumableArray(churchImages), _toConsumableArray(churchImages));
           allImages.forEach(function (imageData) {
@@ -72,25 +73,28 @@ function loadChurchImagesToCarousel() {
               window.location.href = 'images.html';
             });
             track.append(img);
-          }); // Restart animation
+          }); // Set initial position for left-to-right scroll and restart animation
 
-          track.css('animation', 'none');
+          track.css({
+            'animation': 'none',
+            'transform': 'translateX(-50%)'
+          });
           setTimeout(function () {
-            track.css('animation', 'scrollImages 30s linear infinite');
+            track.css('animation', 'scrollImagesRight 30s linear infinite');
           }, 10);
-          _context.next = 22;
+          _context.next = 23;
           break;
 
-        case 18:
-          _context.prev = 18;
-          _context.t0 = _context["catch"](4);
+        case 19:
+          _context.prev = 19;
+          _context.t0 = _context["catch"](5);
           console.error('Error loading church images:', _context.t0);
-          track.hide();
+          if (container.length) container.hide();
 
-        case 22:
+        case 23:
         case "end":
           return _context.stop();
       }
     }
-  }, null, null, [[4, 18]]);
+  }, null, null, [[5, 19]]);
 }

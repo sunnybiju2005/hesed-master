@@ -208,48 +208,29 @@
     </section> <!-- end s-recent-news -->
 
 
-    <!-- series
+    <!-- Divider between sections -->
+    <div style="width: 100%; height: 2px; background-color: #000000; margin: 3rem 0;"></div>
+
+
+    <!-- Church Images Carousel
     ================================================== -->
-    <section class="s-series">
-
-        <div class="series-img" style="background-image: url('images/series-2000.jpg');"></div>
-
-        <div class="row row-y-center series-content">
-
-            <div class="column large-half medium-full">
-                <h3 class="subhead">Current Series</h3>
-                <h2>Shape Your Life with the Words of Life.</h2>
-                <p>
-                Aut sed amet et quis aliquid laborum minus consequatur. Animi repellendus quas. 
-                Est voluptates minima ut dolorum aliquid sint. Ratione et et molestias rerum 
-                quibusdam. Deserunt suscipit ut expedita. Non numquam aut eum perferendis 
-                molestiae praesentium aliquid voluptatum numquam dolorum aliquid sint minima.
-                </p>
-            </div> <!-- end column -->
-
-            <div class="column large-half medium-full">
-                <div class="series-content__buttons">
-                    <a href="" class="btn btn--large h-full-width">Watch the Video</a>
-                    <a href="" class="btn btn--large h-full-width">Listen To the Message</a>
+    <section class="s-church-images" style="background-color: #f5f5f5; padding: 4rem 0; overflow: hidden; position: relative;">
+        <div class="row">
+            <div class="column">
+                <h2 class="subhead" style="text-align: center; margin-bottom: 3rem;">Church Gallery</h2>
+                <div class="church-images-carousel-container" style="position: relative; width: 100%; overflow: hidden;">
+                    <div class="church-images-track" id="churchImagesTrack" style="display: flex; gap: 2rem;">
+                        <!-- Images will be loaded dynamically -->
+                    </div>
                 </div>
-
-                <div class="series-content__subscribe">
-                    <p>
-                    Never missed a message. Subscribe to our YouTube and Podcast channels.
-                    </p>
-                    
-                    <ul class="series-content__subscribe-links">
-                        <li class="ss-apple-podcast"><a href="#0">Apple Podcast</a></li>
-                        <li class="ss-spotify"><a href="#0">Spotify</a></li>
-                        <li class="ss-soundcloud"><a href="#0">SoundCloud</a></li>
-                        <li class="ss-youtube"><a href="#0">Youtube</a></li>
-                    </ul>
+                <div style="text-align: center; margin-top: 3rem;">
+                    <a href="images.html" class="btn" style="display: inline-block; padding: 1.2rem 3rem; font-size: 1.6rem; font-weight: 600; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 4px; transition: background-color 0.3s;">
+                        Discover Images
+                    </a>
                 </div>
-            </div> <!-- end column -->
-            
-        </div> <!-- series-content -->
-
-    </section> <!-- end s-series -->
+            </div>
+        </div>
+    </section> <!-- end s-church-images -->
 
 
     <!-- Social
@@ -363,6 +344,7 @@
     <script src="js/cloudinary-config.js"></script>
     <script src="js/firebase-service.js"></script>
     <script src="js/admin-news-loader.js"></script>
+    <script src="js/church-images-carousel.js"></script>
     
     <script>
         // Force parallax image to show full view from top to bottom
