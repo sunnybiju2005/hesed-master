@@ -3224,8 +3224,8 @@ html.no-csstransitions .hero-content {
  *
  * ------------------------------------------------------------------- */
 .s-social {
-  padding-top: 10.4rem;
-  padding-bottom: 9.6rem;
+  padding-top: 6rem;
+  padding-bottom: 6rem;
   background-color: #000000;
 }
 
@@ -3372,8 +3372,8 @@ html.no-csstransitions .hero-content {
  *
  * ------------------------------------------------------------------- */
 .s-footer {
-  padding-top: 12rem;
-  padding-bottom: 8rem;
+  padding-top: 8rem;
+  padding-bottom: 5rem;
   background-color: #000000;
   font-family: "Open Sans", sans-serif;
   font-size: 1.7rem;
@@ -3385,8 +3385,18 @@ html.no-csstransitions .hero-content {
   color: #ffffff;
 }
 
+.s-footer h3.footer-title {
+  font-family: "Montserrat", sans-serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 0;
+  margin-bottom: 2rem;
+  line-height: 1.2;
+}
+
 .s-footer h4 {
-  margin-top: 1.6rem;
+  margin-top: 0;
   margin-bottom: 2.4rem;
   color: #ffffff;
 }
@@ -3407,11 +3417,25 @@ html.no-csstransitions .hero-content {
   margin-right: auto;
 }
 
+.s-footer .footer-top .column:first-child p {
+  margin-bottom: 2rem;
+  line-height: 1.8;
+}
+
+.s-footer .footer-top .column:last-child .row .column {
+  padding-left: 2rem;
+}
+
+.s-footer .footer-top .column:last-child .row .column:first-child {
+  padding-left: 0;
+  padding-right: 2rem;
+}
+
 /* -------------------------------------------------------------------
  * ## footer logo 
  * ------------------------------------------------------------------- */
 .footer-logo {
-  margin-bottom: 2.8rem;
+  margin-bottom: 2rem;
 }
 
 .footer-logo a {
@@ -3448,8 +3472,14 @@ html.no-csstransitions .hero-content {
 /* ------------------------------------------------------------------- 
  * ## copyright 
  * ------------------------------------------------------------------- */
+.s-footer .ss-copyright {
+  margin-top: 3rem;
+  padding-right: 0;
+  color: rgba(255, 255, 255, 0.3);
+}
+
 .ss-copyright {
-  margin-top: 4.8rem;
+  margin-top: 3rem;
   padding-right: 80px;
   color: rgba(255, 255, 255, 0.3);
 }
