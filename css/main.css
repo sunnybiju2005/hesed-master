@@ -2595,8 +2595,8 @@ html.no-csstransitions .hero-content {
  *
  * ------------------------------------------------------------------- */
 .s-about {
-  padding-top: 19.6rem;
-  padding-bottom: 19.6rem;
+  padding-top: 10rem;
+  padding-bottom: 10rem;
   background-color: #000000;
   color: rgba(255, 255, 255, 0.8);
 }
@@ -2767,12 +2767,23 @@ html.no-csstransitions .hero-content {
 /* ------------------------------------------------------------------- 
  * ## about content
  * ------------------------------------------------------------------- */
+.about-content {
+  align-items: flex-start;
+}
+
 .about-content .column:first-child {
   padding-right: 2.4vw;
 }
 
 .about-content .column:last-child {
   padding-left: 2.4vw;
+  display: flex;
+  align-items: flex-start;
+}
+
+.about-content .column:last-child .about-sched {
+  width: 100%;
+  margin-top: 0;
 }
 
 /* ------------------------------------------------------------------- 
@@ -2782,12 +2793,14 @@ html.no-csstransitions .hero-content {
   list-style: none;
   margin: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 0;
 }
 
 .about-sched h4 {
   font-size: 1.5rem;
   line-height: 1.333;
   margin-top: 0;
+  margin-bottom: 2rem;
   text-transform: uppercase;
   letter-spacing: .4rem;
   color: #ffffff;
@@ -2795,8 +2808,14 @@ html.no-csstransitions .hero-content {
 
 .about-sched li {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 3.2rem;
+  padding-top: 0;
+  padding-bottom: 0;
   padding-left: 0;
+}
+
+.about-sched p {
+  margin: 0;
+  line-height: 1.8;
 }
 
 /* ------------------------------------------------------------------- 
