@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://your-domain-name.vercel.app/sitemap.xml
+Sitemap: https://www.stpaulschurchthaikkattussery.co.in/sitemap.xml
